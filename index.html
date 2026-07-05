@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>AI 실시간 유해위험요인 파악</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+  
+  <style>
+    body { 
+      margin: 0; 
+      font-family: 'Malgun Gothic', -apple-system, sans-serif; 
+      background: #111; 
+      color: white; 
+      overflow: hidden; 
+    }
+    
+    #container { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      height: 100vh; 
+      position: relative; 
+    }
+    
+    h1 { 
+      position: absolute; 
+      top: 15px; 
+      z-index: 10; 
+      font-size: 1.1rem; 
+      background: rgba(0, 0, 0, 0.7); 
+      padding: 8px 18px; 
+      border-radius: 20px; 
+      margin: 0;
+      border: 1px solid #ffcc00;
+    }
+    
+    #video-container { 
+      position: relative; 
+      width: 100%; 
+      max-width: 500px; 
+      padding: 0 10px;
+      box-sizing: border-box;
+    }
+    
+    video { 
+      width: 100%; 
+      height: auto;
+      border-radius: 12px; 
+      background: #000; 
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    
+    canvas { 
+      position: absolute; 
+      top: 0; 
+      left: 10px; /* 비디오 패딩 공간 정렬 */
+      width: calc(100% - 20px); 
+      height: auto; 
+      pointer-events: none; /* 터치 이벤트 방해 금지 */
+    }
+    
+    #loading { 
+      position: absolute; 
+      bottom: 30px; 
+      font-size: 0.9rem; 
+      color: #bbbbbb; 
+      background: rgba(0,0,0,0.5);
+      padding: 5px 15px;
+      border-radius: 10px;
+    }
+
+    /* 팝업 모달 스타일 */
+    #modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85); 
+      display: flex; align-items: center; justify-content: center; 
+      z-index: 100;
+    }
+    .modal-content {
+      background: #222; 
+      padding: 30px; 
+      border-radius: 16px; 
+      text-align: center; 
+      max-width: 85%;
+      border: 1px solid #444;
+    }
+    .modal-content p { 
+      margin-top: 0;
+      margin-bottom: 25px; 
+      font-size: 1.1rem; 
+      line-height: 1.5;
+    }
+    .btn-group { display: flex; gap: 15px; justify-content: center; }
+    button { 
+      padding: 12px 30px; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-weight: bold; 
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    .btn-yes { background: #ffcc00; color: #000; }
+    .btn-no { background: #444; color: white; }
+  </style>
+</head>
+<body>
+
+<div id="container">
+  <h1>AI 실시간 유해위험요인 파악</h1>
+  
+  <div id="video-container">
+    <video id="webcam" autoplay playsinline muted></video>
+    <canvas id="overlay"></canvas>
+  </div>
+
+  <div id="loading">시스템 초기화 중...</div>
+</div>
+
+<div id="modal">
+  <div class="modal-content">
+    <p>실시간 영상 촬영 및 AI 분석을 위해<br>카메라 권한을 허용하시겠습니까?</p>
+    <div class="btn-group">
+      <button class="btn-yes" onclick="startApp()">예 (허용)</button>
+      <button class="btn-no" onclick="denyApp()">아니오</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const video = document.getElementById('webcam');
+  const canvas = document.getElementById('overlay');
+  const ctx = canvas.getContext('2d');
+  const loadingText = document.getElementById('loading');
+  const modal = document.getElementById('modal');
+  let model = null;
+
+  // 1. AI 모델(COCO-SSD) 로딩
+  async function loadModel() {
+    loadingText.innerText = "AI 안전 분석 모델 로딩 중 (약 3~5초 소요)...";
+    model = await cocoSsd.load();
+    loadingText.innerText = "분석 작동 중 (실시간 탐지)";
+  }
+
+  // 2. 카메라 작동 및 앱 시작
+  async function startApp() {
+    modal.style.display = 'none'; // 모달 닫기
+    
+    try {
+      // 스마트폰의 후면 카메라(environment) 요청
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false
+      });
+      video.srcObject = stream;
+      
+      // 카메라 영상이 정상 재생될 때까지 대기 후 AI 모델 로드 및 프레임 분석 시작
+      video.onloadedmetadata = async () => {
+        await loadModel();
+        detectFrame();
+      };
+    } catch (err) {
+      alert("카메라 권한 승인이 필요하거나 장치를 켤 수 없습니다: " + err.message);
+      loadingText.innerText = "카메라 오류 발생";
+    }
+  }
+
+  function denyApp() {
+    alert("카메라 권한이 거부되어 서비스를 이용할 수 없습니다. 페이지를 새로고침하여 다시 시도해 주세요.");
+    location.reload();
+  }
+
+  // 3. 실시간 비디오 프레임 분석 루프
+  async function detectFrame() {
+    if (!model) return;
+
+    // 비디오 데이터가 정상적으로 들어오고 있을 때만 처리
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      // 캔버스 크기를 비디오의 실제 원본 해상도와 실시간으로 동기화
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+
+      // 객체 탐지 수행
+      const predictions = await model.detect(video);
+      
+      // 이전 프레임의 잔상 지우기
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      predictions.forEach(prediction => {
+        const [x, y, width, height] = prediction.bbox;
+        const label = prediction.class;
+        const score = Math.round(prediction.score * 100);
+
+        // 기본 설정 (테스트용 일반 사물)
+        let hazardType = "미분류 요인 (" + label + ")";
+        let boxColor = "#00FF00"; // 기본 초록색
+
+        // COCO-SSD 모델 클래스 기반 위험 요인 매칭 및 한글화 
+        if (label === 'person') {
+          hazardType = "작업자 감지 (추락/충돌 주의)";
+          boxColor = "#ffcc00"; // 경고: 노란색
+        } else if (label === 'truck' || label === 'car' || label === 'bus') {
+          hazardType = "중장비/차량 (부딪힘 위험)";
+          boxColor = "#ff3300"; // 위험: 빨간색
+        } else if (label === 'cell phone') {
+          // 실내에서 손쉽게 테스트해볼 수 있도록 추가한 규칙
+          hazardType = "스마트폰 사용 (보행 주의)";
+          boxColor = "#ff3300"; 
+        } else if (label === 'chair' || label === 'dining table') {
+          // 실내 테스트용
+          hazardType = "바닥 적재물 (걸림/전도 위험)";
+          boxColor = "#ffcc00";
+        }
+
+        // 1. 하이라이트 박스 그리기
+        ctx.strokeStyle = boxColor;
+        ctx.lineWidth = 5;
+        ctx.strokeRect(x, y, width, height);
+
+        // 2. 텍스트 라벨 배경 그리기
+        ctx.fillStyle = boxColor;
+        ctx.font = "bold 18px Arial";
+        const textStr = `${hazardType} [${score}%]`;
+        const textWidth = ctx.measureText(textStr).width;
+        
+        // 박스 상단에 글자 배경 바 생성
+        ctx.fillRect(x, y - 28, textWidth + 12, 28);
+
+        // 3. 위험 종류 텍스트 쓰기
+        ctx.fillStyle = "#000000"; // 글자는 검은색으로 가독성 확보
+        ctx.fillText(textStr, x + 6, y - 8);
+      });
+    }
+
+    // 다음 프레임 분석을 위해 루프 실행 (웹브라우저 최적화 주기에 맞춤)
+    requestAnimationFrame(detectFrame);
+  }
+</script>
+
+</body>
+</html>
