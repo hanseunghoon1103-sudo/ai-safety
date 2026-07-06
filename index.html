@@ -20,20 +20,99 @@
       justify-content: center;
       height: 100vh;
     }
+
+    /* 공통 버튼 스타일 */
+    .btn {
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    /* 1. 초기 시작/종료 대기 화면 스타일 */
+    #welcome-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px;
+      box-sizing: border-box;
+    }
+    .icon-shield {
+      font-size: 5rem;
+      margin-bottom: 20px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    .main-title {
+      font-size: 1.6rem;
+      color: #ffcc00;
+      margin: 0 0 15px 0;
+    }
+    .sub-text {
+      color: #aaa;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+    .btn-start {
+      padding: 16px 50px;
+      background: #ffcc00;
+      color: #000;
+      font-size: 1.2rem;
+      border-radius: 30px;
+      box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3);
+    }
+
+    /* 2. 실제 AI 카메라 분석 화면 스타일 (처음엔 숨김) */
+    #app-screen {
+      display: none; 
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
     
-    h1 { 
+    #header-bar {
       position: absolute; 
       top: 15px; 
       z-index: 10; 
-      font-size: 1.1rem; 
-      background: rgba(0, 0, 0, 0.7); 
-      padding: 8px 18px; 
-      border-radius: 20px; 
-      margin: 0;
+      width: 95vw;
+      max-width: 500px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.75); 
+      padding: 8px 15px; 
+      border-radius: 25px; 
       border: 1px solid #ffcc00;
+      box-sizing: border-box;
     }
     
-    /* 가로/세로에 따라 화면에 꽉 차도록 유연한 컨테이너 설정 */
+    #header-bar h1 { 
+      font-size: 1rem; 
+      margin: 0;
+      color: #fff;
+    }
+
+    .btn-exit {
+      background: #ff3300;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 15px;
+      font-size: 0.85rem;
+    }
+    
     #video-container { 
       position: relative; 
       width: 95vw; 
@@ -43,16 +122,14 @@
       justify-content: center;
     }
     
-    /* 비율을 유지하되 화면에 꽉 차게 렌더링 */
     video { 
       width: 100%; 
       height: 100%; 
-      object-fit: contain; /* 가로 세로 비율 유지 */
+      object-fit: contain; 
       border-radius: 12px; 
       background: #000; 
     }
     
-    /* 캔버스가 비디오 위에 자석처럼 딱 달라붙도록 설정 */
     canvas { 
       position: absolute; 
       pointer-events: none; 
@@ -68,90 +145,98 @@
       border-radius: 10px;
       z-index: 10;
     }
-
-    /* 팝업 모달 */
-    #modal {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.85); 
-      display: flex; align-items: center; justify-content: center; 
-      z-index: 100;
-    }
-    .modal-content {
-      background: #222; padding: 30px; border-radius: 16px; text-align: center; max-width: 85%; border: 1px solid #444;
-    }
-    .modal-content p { margin-top: 0; margin-bottom: 25px; font-size: 1.1rem; line-height: 1.5; }
-    .btn-group { display: flex; gap: 15px; justify-content: center; }
-    button { padding: 12px 30px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; }
-    .btn-yes { background: #ffcc00; color: #000; }
-    .btn-no { background: #444; color: white; }
   </style>
 </head>
 <body>
 
-<div id="container">
-  <h1>AI 실시간 유해위험요인 파악</h1>
-  
-  <div id="video-container">
-    <video id="webcam" autoplay playsinline muted></video>
-    <canvas id="overlay"></canvas>
+  <div id="welcome-screen">
+    <div class="icon-shield" id="main-icon">🛡️</div>
+    <h2 class="main-title" id="welcome-title">AI 실시간 유해위험요인 파악</h2>
+    <p class="sub-text" id="welcome-desc">
+      아래 [시작하기] 버튼을 누르면 카메라가 활성화되며,<br>
+      현장의 유해 위험 요인을 실시간으로 분석합니다.
+    </p>
+    <button class="btn btn-start" id="action-button" onclick="confirmAndStart()">시작하기</button>
   </div>
 
-  <div id="loading">시스템 초기화 중...</div>
-</div>
-
-<div id="modal">
-  <div class="modal-content">
-    <p>실시간 영상 촬영 및 AI 분석을 위해<br>카메라 권한을 허용하시겠습니까?</p>
-    <div class="btn-group">
-      <button class="btn-yes" onclick="startApp()">예 (허용)</button>
-      <button class="btn-no" onclick="location.reload()">아니오</button>
+  <div id="app-screen">
+    <div id="header-bar">
+      <h1>AI 실시간 유해위험요인 파악</h1>
+      <button class="btn btn-exit" onclick="stopApp()">종료</button>
     </div>
+    
+    <div id="video-container">
+      <video id="webcam" autoplay playsinline muted></video>
+      <canvas id="overlay"></canvas>
+    </div>
+
+    <div id="loading">시스템 초기화 중...</div>
   </div>
-</div>
 
 <script>
+  const welcomeScreen = document.getElementById('welcome-screen');
+  const appScreen = document.getElementById('app-screen');
   const video = document.getElementById('webcam');
   const canvas = document.getElementById('overlay');
   const ctx = canvas.getContext('2d');
   const loadingText = document.getElementById('loading');
-  const modal = document.getElementById('modal');
+  
+  const mainIcon = document.getElementById('main-icon');
+  const welcomeTitle = document.getElementById('welcome-title');
+  const welcomeDesc = document.getElementById('welcome-desc');
+  const actionButton = document.getElementById('action-button');
+  
   let model = null;
+  let localStream = null;
+  let animationFrameId = null;
 
   async function loadModel() {
+    if (model) return; 
     loadingText.innerText = "AI 안전 분석 모델 로딩 중...";
     model = await cocoSsd.load();
-    loadingText.innerText = "분석 작동 중 (실시간 탐지)";
   }
 
+  // 안내 팝업 메시지 (요청하신 문구로 반영 완료)
+  function confirmAndStart() {
+    const message = "실시간 분석에 이 기기의 GPU를 사용합니다. 종료 시 종료버튼을 꼭 눌러주세요.\n\n분석을 시작하시겠습니까?";
+    
+    if (confirm(message)) {
+      startApp();
+    }
+  }
+
+  // 카메라 및 AI 분석 시작
   async function startApp() {
-    modal.style.display = 'none';
+    welcomeScreen.style.display = 'none';
+    appScreen.style.display = 'flex';
+    loadingText.innerText = "카메라 연결 중...";
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
         audio: false
       });
+      localStream = stream;
       video.srcObject = stream;
       
       video.onloadedmetadata = async () => {
-        // [iOS 필수 조치] 비디오 요소 자체에 해상도 크기를 명시적으로 주입
         video.width = video.videoWidth;
         video.height = video.videoHeight;
         
         await loadModel();
+        loadingText.innerText = "분석 작동 중 (실시간 탐지)";
         
-        // 가로/세로 화면 회전 시 캔버스 크기를 다시 맞추기 위한 이벤트 등록
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
         
         detectFrame();
       };
     } catch (err) {
-      alert("카메라를 켤 수 없습니다: " + err.message);
+      alert("카메라를 켤 수 없습니다. 권한 설정을 확인해주세요: " + err.message);
+      goToWelcomeScreen();
     }
   }
 
-  // 비디오 화면 크기와 캔버스 크기를 완벽하게 일치시키는 함수
   function resizeCanvas() {
     const rect = video.getBoundingClientRect();
     canvas.style.width = rect.width + 'px';
@@ -174,20 +259,16 @@
         const label = prediction.class;
         const score = Math.round(prediction.score * 100);
 
-        // 기본 값 설정
         let hazardType = `미분류 요인 (${label})`;
         let boxColor = "#ffcc00"; 
 
-        // 위험 요인 매칭 로직
         if (label === 'person') {
           hazardType = "작업자 감지 (추락/충돌 주의)";
           boxColor = "#ffcc00";
         } else if (['truck', 'car', 'bus'].includes(label)) {
           hazardType = "중장비/차량 (부딪힘 위험)";
           boxColor = "#ff3300";
-        } 
-        // --- 실내/책상 테스트용 일상 사물 규칙 추가 ---
-        else if (label === 'cell phone') {
+        } else if (label === 'cell phone') {
           hazardType = "스마트폰 사용 (보행 주의)";
           boxColor = "#ff3300";
         } else if (['cup', 'bottle'].includes(label)) {
@@ -201,12 +282,10 @@
           boxColor = "#00FF00";
         }
 
-        // 박스 그리기
         ctx.strokeStyle = boxColor;
-        ctx.lineWidth = 6; // 모바일에서 잘 보이도록 두껍게 변경
+        ctx.lineWidth = 6;
         ctx.strokeRect(x, y, width, height);
 
-        // 라벨 배경 및 텍스트
         ctx.fillStyle = boxColor;
         ctx.font = "bold 20px Arial";
         const textStr = `${hazardType} [${score}%]`;
@@ -217,7 +296,38 @@
         ctx.fillText(textStr, x + 6, y - 10);
       });
     }
-    requestAnimationFrame(detectFrame);
+    animationFrameId = requestAnimationFrame(detectFrame);
+  }
+
+  // 종료 프로세스
+  function stopApp() {
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      localStream = null;
+    }
+
+    video.srcObject = null;
+    window.removeEventListener('resize', resizeCanvas);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    appScreen.style.display = 'none';
+    
+    mainIcon.innerText = "✅";
+    welcomeTitle.innerText = "AI 분석 안전 종료됨";
+    welcomeDesc.innerHTML = "카메라 하드웨어 전원 및 AI 연산이 완벽히 차단되었습니다.<br>스마트폰의 발열과 배터리 소모가 정지되었습니다.";
+    actionButton.innerText = "다시 시작하기";
+    
+    welcomeScreen.style.display = 'flex';
+  }
+
+  function goToWelcomeScreen() {
+    appScreen.style.display = 'none';
+    welcomeScreen.style.display = 'flex';
   }
 </script>
 
