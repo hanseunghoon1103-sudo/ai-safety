@@ -91,14 +91,13 @@
   let localStream = null;
   let animationFrameId = null;
 
-  // YOLOv8 기본 80가지 클래스 정의
+  // YOLOv8 표준 학술 객체 80개 사전 설정
   const yoloClasses = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
 
-  // 🌟 구출해온 실물 'yolov8n.onnx' 파일을 웹 브라우저로 직접 로드합니다.
+  // 마이크로소프트 런타임 엔진으로 로컬 ONNX 모델 인스턴스 구축
   async function loadModel() {
     if (session) return; 
     loadingText.innerText = "YOLO 고정밀 ONNX 안전 모델 로딩 중...";
-    // 같은 깃허브 최상단 경로에 있는 yolov8n.onnx 파일을 상대경로로 읽어옵니다.
     session = await ort.InferenceSession.create('./yolov8n.onnx', { executionProviders: ['webgl', 'wasm'] });
   }
 
@@ -147,7 +146,7 @@
     canvas.height = video.videoHeight;
   }
 
-  // 🌟 ONNX 런타임 웹 전용 실시간 고속 이미지 프로세싱 및 AI 추론 파이프라인
+  // 실시간 카메라 비디오 이미지 피드 수집 및 ONNX 수학 연산 파이프라인
   async function detectFrame() {
     if (!session) return;
 
@@ -157,7 +156,7 @@
           .resizeNearestNeighbor([640, 640])
           .toFloat()
           .div(tf.scalar(255.0));
-        const transposed = img.transpose([2, 0, 1]); // HWC 구조를 YOLO 표준 규격인 CHW [1, 3, 640, 640] 구조로 정밀 매핑
+        const transposed = img.transpose([2, 0, 1]); // HWC -> CHW 다차원 행렬 교환
         return [transposed.dataSync(), video.videoWidth, video.videoHeight];
       });
 
@@ -167,7 +166,6 @@
       const outputMap = await session.run(feeds);
       const outputTensor = outputMap[session.outputNames[0]];
 
-      // 텐서플로우 연산을 활용해 YOLOv8의 복잡한 바운딩 박스 수학 행렬 연산을 실시간 처리합니다.
       tf.tidy(() => {
         const result = tf.tensor(outputTensor.data, [1, 84, 8400]);
         const resTransposed = result.transpose([0, 2, 1]); 
@@ -178,7 +176,6 @@
         const maxScores = scores.max(2).squeeze();
         const classes = scores.argMax(2).squeeze();
 
-        // 겹치는 박스를 부드럽게 지워주는 NMS 필터링 알고리즘
         const nmsIndices = tf.image.nonMaxSuppression(
           boxes.squeeze(), 
           maxScores, 
@@ -210,7 +207,6 @@
           let hazardType = `미분류 요인 (${label})`;
           let boxColor = "#ffcc00"; 
 
-          // 현장 유해 위험 요인 한글 커스텀 라벨링 및 시각적 안전 색상 코드 매핑
           if (label === 'person') { hazardType = "작업자 감지 (추락/충돌 주의)"; boxColor = "#ffcc00"; }
           else if (['truck', 'car', 'bus'].includes(label)) { hazardType = "중장비/차량 (부딪힘 위험)"; boxColor = "#ff3300"; }
           else if (label === 'cell phone') { hazardType = "스마트폰 사용 (보행 주의)"; boxColor = "#ff3300"; }
@@ -218,20 +214,33 @@
           else if (['laptop', 'keyboard', 'mouse', 'tv'].includes(label)) { hazardType = "전자기기 (감전/과열 주의)"; boxColor = "#00FF00"; }
           else if (label === 'chair') { hazardType = "방치된 의자 (전도 위험)"; boxColor = "#00FF00"; }
 
-          // 스마트폰 브라우저 화면에 실시간 사물추적 박스 그리기
-          ctx.strokeStyle = boxColor; ctx.lineWidth = 6; ctx.strokeRect(x, y, w, h);
-          ctx.fillStyle = boxColor; ctx.font = "bold 20px Arial";
+          // 🌟 [질문자님 요청 디자인 스타일 커스텀 반영 영역] 🌟
+          // 박스와 글자 꼬리표 배경에 투명도 50%를 적용합니다.
+          ctx.globalAlpha = 0.5;
+          
+          // 1. 추적 사각형 그리기 (두께를 3으로 얇고 날렵하게 설정)
+          ctx.strokeStyle = boxColor; 
+          ctx.lineWidth = 3; 
+          ctx.strokeRect(x, y, w, h);
+
+          // 2. 글자 폰트 설정 (기존 20px -> 한 단계 작은 15px로 축소) 및 꼬리표 그리기
+          ctx.fillStyle = boxColor; 
+          ctx.font = "bold 15px Arial";
           const textStr = `${hazardType} [${score}%]`;
           const textWidth = ctx.measureText(textStr).width;
-          ctx.fillRect(x, y - 32, textWidth + 12, 32);
-          ctx.fillStyle = "#000000"; ctx.fillText(textStr, x + 6, y - 10);
+          // 작은 글자 크기에 완벽히 연동되도록 배경 박스 두께와 폭 조정 (높이 24px)
+          ctx.fillRect(x, y - 24, textWidth + 10, 24);
+          
+          // 3. 실제 글자 텍스트 입력 (글자 텍스트는 선명하게 읽히도록 알파값 1.0 복귀)
+          ctx.globalAlpha = 1.0;
+          ctx.fillStyle = "#000000"; 
+          ctx.fillText(textStr, x + 5, y - 7);
         });
       });
     }
     animationFrameId = requestAnimationFrame(detectFrame);
   }
 
-  // 자원 반환 및 안전 종료 로직
   function stopApp() {
     if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
     if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
