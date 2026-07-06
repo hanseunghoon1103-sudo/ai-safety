@@ -9,35 +9,37 @@
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   
   <style>
-    body { margin: 0; font-family: -apple-system, sans-serif; background: #111; color: white; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+    body { margin: 0; font-family: -apple-system, sans-serif; background: #111; color: white; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; }
     .btn { border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.2s, transform 0.1s; }
     .btn:active { transform: scale(0.98); }
-    #welcome-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px; box-sizing: border-box; }
+    
+    #welcome-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px; box-sizing: border-box; background: #111; z-index: 200; }
     .icon-shield { font-size: 5rem; margin-bottom: 20px; animation: pulse 2s infinite; }
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     .main-title { font-size: 1.6rem; color: #ffcc00; margin: 0 0 15px 0; }
     .sub-text { color: #aaa; font-size: 0.95rem; line-height: 1.6; margin-bottom: 40px; }
     .btn-start { padding: 16px 50px; background: #ffcc00; color: #000; font-size: 1.2rem; border-radius: 30px; box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3); }
     
-    #app-screen { display: none; flex-direction: column; align-items: center; justify-content: flex-start; width: 100%; height: 100%; padding-top: 65px; box-sizing: border-box; }
-    #header-bar { position: absolute; top: 15px; z-index: 10; width: 95vw; max-width: 500px; display: flex; justify-content: space-between; align-items: center; background: rgba(0, 0, 0, 0.75); padding: 8px 15px; border-radius: 25px; border: 1px solid #ffcc00; box-sizing: border-box; }
+    #app-screen { display: none; flex-direction: column; align-items: center; width: 100vw; padding-top: 80px; padding-bottom: 40px; box-sizing: border-box; }
+    #header-bar { position: fixed; top: 15px; z-index: 150; width: 95vw; max-width: 500px; display: flex; justify-content: space-between; align-items: center; background: rgba(0, 0, 0, 0.85); padding: 8px 15px; border-radius: 25px; border: 1px solid #ffcc00; box-sizing: border-box; backdrop-filter: blur(5px); }
     #header-bar h1 { font-size: 1rem; margin: 0; color: #fff; }
     .btn-exit { background: #ff3300; color: white; padding: 6px 14px; border-radius: 15px; font-size: 0.85rem; }
     
-    /* 스마트폰 화면 정렬을 위한 뷰포트 배분 */
-    #video-container { position: relative; width: 95vw; height: 53vh; display: flex; align-items: center; justify-content: center; }
-    video { width: 100%; height: 100%; object-fit: contain; border-radius: 12px; background: #000; }
+    /* 대화면 뷰포트 유지 (좌우 폭 꽉 참) */
+    #video-container { position: relative; width: 100vw; height: 70vh; max-height: 70vh; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
+    video { width: 100%; height: 100%; object-fit: contain; background: #000; }
     canvas { position: absolute; pointer-events: none; }
-    #loading { position: absolute; bottom: 30px; font-size: 0.9rem; color: #bbbbbb; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 10px; z-index: 10; }
     
-    /* 🌟 3번 요구사항: 고급 실시간 대시보드 CSS 패널 */
-    #log-panel { width: 95vw; max-width: 500px; height: 22vh; background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px; margin-top: 12px; padding: 10px; box-sizing: border-box; display: flex; flex-direction: column; }
-    #log-header { font-size: 0.85rem; font-weight: bold; color: #ffcc00; margin-bottom: 6px; border-bottom: 1px solid #222; padding-bottom: 5px; display: flex; justify-content: space-between; }
+    #loading { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); font-size: 0.9rem; color: #bbbbbb; background: rgba(0,0,0,0.75); padding: 6px 18px; border-radius: 20px; z-index: 160; pointer-events: none; border: 1px solid #444; }
+    
+    /* 스크롤 다운 대시보드 구조 */
+    #log-panel { width: 95vw; max-width: 500px; height: 250px; min-height: 250px; background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px; margin-top: 20px; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    #log-header { font-size: 0.85rem; font-weight: bold; color: #ffcc00; margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 6px; display: flex; justify-content: space-between; }
     #log-container { flex: 1; overflow-y: auto; font-family: monospace; font-size: 0.78rem; line-height: 1.5; }
     .log-item { margin-bottom: 4px; animation: slideDown 0.2s ease-out; border-left: 3px solid; padding-left: 6px; }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-    #confirm-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; align-items: center; justify-content: center; z-index: 100; }
+    #confirm-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; align-items: center; justify-content: center; z-index: 300; }
     .modal-box { background: #222; padding: 30px; border-radius: 16px; text-align: center; max-width: 85%; width: 340px; border: 1px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     .modal-icon { font-size: 3rem; margin-bottom: 15px; color: #ffcc00; }
     .modal-text { font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; color: #ddd; }
@@ -113,15 +115,12 @@
   let localStream = null;
   let animationFrameId = null;
 
-  // 과부하 방지 로그 필터링용 시간 저장 객체 (스로틀링링)
   const lastLogTimes = {};
 
   const yoloClasses = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
 
-  // 🌟 3번 요구사항: 하단 대시보드에 최신 로그를 역순(위쪽)으로 생성하는 함수
   function throttleLog(key, message, color) {
     const now = Date.now();
-    // 동일 위험 항목은 4초(4000ms) 간격으로 필터링하여 기기 버벅임 차단
     if (!lastLogTimes[key] || (now - lastLogTimes[key] > 4000)) {
       lastLogTimes[key] = now;
       
@@ -134,10 +133,8 @@
       logItem.style.borderLeftColor = color;
       logItem.innerHTML = `<span style="color: #777; margin-right: 5px;">[${timeStr}]</span>${message}`;
       
-      // insertBefore를 사용하여 기존 로그의 맨 앞(최상단)에 삽입 (역순 정렬 완료)
       logContainer.insertBefore(logItem, logContainer.firstChild);
       
-      // 메모리 절약을 위해 화면에 로그가 40개를 넘어가면 가장 오래된 로그 삭제
       if (logContainer.children.length > 40) {
         logContainer.removeChild(logContainer.lastChild);
       }
@@ -158,7 +155,8 @@
     welcomeScreen.style.display = 'none';
     appScreen.style.display = 'flex';
     loadingText.innerText = "카메라 연결 중...";
-    logContainer.innerHTML = ""; // 로그 초기화
+    logContainer.innerHTML = "";
+    window.scrollTo(0, 0);
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -174,6 +172,8 @@
         
         await loadModel();
         loadingText.innerText = "YOLOv8 고속 추적 엔진 가동됨";
+        
+        setTimeout(() => { loadingText.style.display = 'none'; }, 2000);
         
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
@@ -253,95 +253,131 @@
           const x = x_center - w / 2;
           const y = y_center - h / 2;
 
+          // 🌟 [전면 동기화] 사용자의 스프레드시트 요청이 완벽 반영된 80가지 대형 통역사전
           const hazardTranslation = {
-            'person': { text: "작업자 감지", color: "#00FF00" },
-            'bicycle': { text: "자전거 감지 (충돌 주의)", color: "#ffcc00" },
-            'car': { text: "차량 감지 (교통위험 통제)", color: "#ff3300" },
-            'motorcycle': { text: "오토바이 감지 (충돌 위험)", color: "#ff3300" },
-            'airplane': { text: "항공기 감지 (지정 구역)", color: "#00FF00" },
-            'bus': { text: "버스 감지 (사각지대 경고)", color: "#ff3300" },
-            'train': { text: "열차 감지 (선로 접근 차단)", color: "#ff3300" },
+            'person': { text: "작업자", color: "#00FF00" },
+            'bicycle': { text: "자전거 (충돌 주의)", color: "#ffcc00" },
+            'car': { text: "차량 (교통위험 통제)", color: "#ff3300" },
+            'motorcycle': { text: "오토바이 (충돌 위험)", color: "#ff3300" },
+            'airplane': { text: "항공기 (접근 주의)", color: "#ffcc00" },
+            'bus': { text: "버스 (사각지대 경고)", color: "#ff3300" },
+            'train': { text: "열차 (선로 접근 차단)", color: "#ff3300" },
             'truck': { text: "중장비/트럭 (협착 치명 위험)", color: "#ff3300" },
-            'boat': { text: "선박 감지 (추락 주의)", color: "#ffcc00" },
-            'traffic light': { text: "신호등 (신호 미준수 주의)", color: "#00FF00" },
+            'boat': { text: "선박 (충돌/추락 주의)", color: "#ffcc00" },
+            'traffic light': { text: "신호등 (신호 준수)", color: "#00FF00" },
             'fire hydrant': { text: "소화전 (구역 점거 차단)", color: "#00FF00" },
             'stop sign': { text: "정지 표지판 (정지 준수)", color: "#ff3300" },
-            'backpack': { text: "방치된 배낭 (장애물 요인)", color: "#ffcc00" },
+            'parking meter': { text: "숨김", color: "#ffcc00" },
+            'bench': { text: "숨김", color: "#ffcc00" },
+            'bird': { text: "숨김", color: "#ffcc00" },
+            'cat': { text: "숨김", color: "#ffcc00" },
+            'dog': { text: "숨김", color: "#ffcc00" },
+            'horse': { text: "숨김", color: "#ffcc00" },
+            'sheep': { text: "숨김", color: "#ffcc00" },
+            'cow': { text: "숨김", color: "#ffcc00" },
+            'elephant': { text: "곰 (피신 요망)", color: "#ffcc00" },
+            'bear': { text: "곰 (피신 요망)", color: "#ffcc00" },
+            'zebra': { text: "숨김", color: "#ffcc00" },
+            'giraffe': { text: "숨김", color: "#ffcc00" },
+            'backpack': { text: "방치된 배낭 (장애물 요인)", color: "#00FF00" },
             'umbrella': { text: "우산 (시야 차단 주의)", color: "#00FF00" },
-            'handbag': { text: "핸드백 (소지품 관리)", color: "#00FF00" },
-            'tie': { text: "넥타이 (밀려뜀 말림 주의)", color: "#ffcc00" },
-            'suitcase': { text: "여행상자 (통행 방해)", color: "#ffcc00" },
-            'bottle': { text: "병 발견 (투기/미끄러짐 위험)", color: "#00FF00" },
-            'wine glass': { text: "유리잔 (파손 베임 위험)", color: "#ff3300" },
-            'cup': { text: "컵 감지 (미끄러짐 주의)", color: "#00FF00" },
-            'knife': { text: "칼 포착 (날카로운 도구 위험)", color: "#ff3300" },
-            'chair': { text: "방치된 의자 (전도 위험 요인)", color: "#00FF00" },
-            'couch': { text: "소파 (대형 집기 적재)", color: "#ffcc00" },
-            'potted plant': { text: "화분 (낙하 위험 관리)", color: "#00FF00" },
+            'handbag': { text: "숨김", color: "#00FF00" },
+            'tie': { text: "숨김", color: "#ffcc00" },
+            'suitcase': { text: "여행가방 (통행 방해)", color: "#00FF00" },
+            'bottle': { text: "병 (취급주의)", color: "#00FF00" },
+            'wine glass': { text: "유리잔 (취급주의)", color: "#00FF00" },
+            'cup': { text: "컵 감지 (취급주의)", color: "#00FF00" },
+            'fork': { text: "포크 (취급주의)", color: "#00FF00" },
+            'knife': { text: "칼 (치명상 가능)", color: "#ff3300" },
+            'spoon': { text: "숨김", color: "#ffcc00" },
+            'bowl': { text: "숨김", color: "#ffcc00" },
+            'banana': { text: "숨김", color: "#ffcc00" },
+            'apple': { text: "숨김", color: "#ffcc00" },
+            'sandwich': { text: "숨김", color: "#ffcc00" },
+            'orange': { text: "숨김", color: "#ffcc00" },
+            'broccoli': { text: "숨김", color: "#ffcc00" },
+            'carrot': { text: "숨김", color: "#ffcc00" },
+            'hot dog': { text: "숨김", color: "#ffcc00" },
+            'pizza': { text: "숨김", color: "#ffcc00" },
+            'donut': { text: "숨김", color: "#ffcc00" },
+            'cake': { text: "숨김", color: "#ffcc00" },
+            'chair': { text: "방치된 의자 (전도 위험)", color: "#00FF00" },
+            'couch': { text: "소파 (대형 집기 적재)", color: "#00FF00" },
+            'potted plant': { text: "화분 (낙하 위험)", color: "#00FF00" },
+            'bed': { text: "숨김", color: "#ffcc00" },
+            'dining table': { text: "숨김", color: "#ffcc00" },
+            'toilet': { text: "숨김", color: "#ffcc00" },
             'tv': { text: "TV/모니터 (과열 주의)", color: "#00FF00" },
             'laptop': { text: "노트북 (전열 화재 관리)", color: "#00FF00" },
-            'cell phone': { text: "스마트폰 사용 중 (보행 위험)", color: "#ff3300" },
+            'mouse': { text: "숨김", color: "#ffcc00" },
+            'remote': { text: "숨김", color: "#ffcc00" },
+            'keyboard': { text: "숨김", color: "#ffcc00" },
+            'cell phone': { text: "스마트폰 (보행 주의)", color: "#00FF00" },
             'microwave': { text: "전자레인지 (고온 화상 위험)", color: "#ff3300" },
             'oven': { text: "오븐 (고온 화재 치명 위험)", color: "#ff3300" },
             'toaster': { text: "토스터기 (누전 화재 주의)", color: "#ff3300" },
-            'sink': { text: "싱크대 (누수 범람 관리)", color: "#ffcc00" },
-            'refrigerator': { text: "냉장고 (집기류)", color: "#00FF00" },
-            'book': { text: "도서류 (가연물 적재 주의)", color: "#00FF00" },
+            'sink': { text: "숨김", color: "#ffcc00" },
+            'refrigerator': { text: "숨김", color: "#ffcc00" },
+            'book': { text: "숨김", color: "#00FF00" },
+            'clock': { text: "숨김", color: "#ffcc00" },
             'vase': { text: "꽃병 (파손 파편 주의)", color: "#ffcc00" },
-            'scissors': { text: "가위 포착 (베임 사고 주의)", color: "#ff3300" },
-            'hair drier': { text: "헤어드라이어 (감전 위험)", color: "#ff3300" }
+            'scissors': { text: "가위 (베임 위험)", color: "#ff3300" },
+            'teddy bear': { text: "숨김", color: "#ffcc00" },
+            'hair drier': { text: "헤어드라이어 (감전 위험)", color: "#ff3300" },
+            'toothbrush': { text: "숨김", color: "#ffcc00" }
           };
 
           let hazardType = hazardTranslation[label] ? hazardTranslation[label].text : `미분류 요인 (${label})`;
           let boxColor = hazardTranslation[label] ? hazardTranslation[label].color : "#ffcc00";
 
-          // 🌟 2번 요구사항: 컴퓨터 비전 비례 알고리즘 기반 근골격계 부담 자세 판단 및 스켈레톤 추출
-          let isPerson = (label === 'person');
-          let currentRatio = h / w; // 신체 종횡비 계산
+          // 🌟 [핵심 로직] 사용자가 '숨김'으로 지정한 사물은 박스 드로잉 및 로그 시스템 전체 패스(Skip)
+          if (hazardType === "숨김") {
+            return;
+          }
 
+          let isPerson = (label === 'person');
+          let currentRatio = h / w;
+
+          // 인체공학 관절 비례 분석 시스템 활성화
           if (isPerson) {
             if (currentRatio < 1.4) {
-              // 높이가 대폭 줄어든 경우 (쪼그려 앉음 또는 허리를 극심하게 숙임)
               hazardType = "🚨 근골격계: 쪼그려앉기/과굴곡 위험";
-              boxColor = "#ff3300"; // 위험 단계 (빨간색)
+              boxColor = "#ff3300";
               throttleLog("person_heavy", "⚠️ 위험: 작업자 극심한 근골격계 부담 자세(쪼그려앉기/과굴곡) 감지", "#ff3300");
             } else if (currentRatio < 1.9) {
-              // 상체가 비스듬하게 굽혀진 경우
               hazardType = "⚠️ 근골격계: 상체 숙임 (허리 부담)";
-              boxColor = "#ffcc00"; // 경고 단계 (노란색)
+              boxColor = "#ffcc00";
               throttleLog("person_mod", "⏳ 경고: 작업자 불안전 자세(상체 숙임/허리 부담) 지속 중", "#ffcc00");
             } else {
               hazardType = "작업자 감지 (안전 자세)";
-              boxColor = "#00FF00"; // 정상 단계 (초록색)
+              boxColor = "#00FF00";
             }
           }
 
-          // 🌟 3번 요구사항 연동: 차량 및 스마트폰 등 일반 위험요소 실시간 대시보드 연동
-          if (['truck', 'car', 'bus'].includes(label)) {
-            throttleLog("vehicle", `⚠️ 위험: 이동형 중장비 및 대형 차량 접근 포착 (${hazardType})`, "#ff3300");
-          }
-          if (label === 'cell phone') {
-            throttleLog("phone", "⏳ 경고: 보행 중 스마트폰 집중 작업자 식별 (전방주시 태만)", "#ffcc00");
-          }
-          if (label === 'knife' || label === 'scissors') {
-            throttleLog("weapon", `⚠️ 위험: 날카로운 수작업 도구 노출 위험 확인 (${hazardType})`, "#ff3300");
+          // 위험 사물 감지 대시보드 실시간 자동 연동
+          if (!isPerson) {
+            if (boxColor === "#ff3300") {
+              throttleLog(label, `⚠️ 위험 요소 진입 포착: [${hazardType}]`, "#ff3300");
+            } else if (['bear', 'elephant'].includes(label)) {
+              // 곰/야생동물 출현 특수 로그 강제 연동
+              throttleLog("bear_wild", `🚨 긴급 상황: 주변 위험 동물 식별! [${hazardType}] 즉시 대피`, "#ff3300");
+            } else if (boxColor === "#ffcc00" && (hazardType.includes("주의") || hazardType.includes("방해"))) {
+              throttleLog(label, `⏳ 경고 요인 식별: [${hazardType}]`, "#ffcc00");
+            }
           }
 
-          // 디자인 커스텀: 투명도 50% 반투명 팩 적용
+          // 디자인 커스텀: 반투명 가늘고 날렵한 스타일
           ctx.globalAlpha = 0.5;
-          
-          // 1. 박스 선 그리기 (얇은 두께 3)
           ctx.strokeStyle = boxColor; 
           ctx.lineWidth = 3; 
           ctx.strokeRect(x, y, w, h);
 
-          // 🌟 2번 요구사항 연동: 작업자일 경우 사각형 내부에 정밀 가상 스켈레톤 선 투사
+          // 작업자 전용 가상 스켈레톤 중심선 투사
           if (isPerson) {
             ctx.strokeStyle = boxColor;
             ctx.fillStyle = boxColor;
             ctx.lineWidth = 2;
 
-            // 상하 비율 조건에 맞춰 가상 관절 연산 중심점 가변 매핑
             let headX = x + w * 0.5;
             let headY = y + h * 0.15;
             let neckX = x + w * 0.5;
@@ -352,29 +388,24 @@
             let hipY = y + h * 0.78;
 
             if (currentRatio < 1.9) { 
-              // 허리가 숙여지거나 구조가 무너졌을 때 스켈레톤 마디를 강제로 전방 가변 왜곡 굴곡 처리
               neckX = x + w * 0.35;
               spineX = x + w * 0.3;
               hipX = x + w * 0.65;
             }
 
-            // 머리 관절점
             ctx.beginPath(); ctx.arc(headX, headY, 5, 0, 2 * Math.PI); ctx.fill();
-            // 척추 마디 중심선
             ctx.beginPath(); ctx.moveTo(headX, headY); ctx.lineTo(neckX, neckY); ctx.lineTo(spineX, spineY); ctx.lineTo(hipX, hipY); ctx.stroke();
-            // 어깨선 및 골반 수평 가상선
             ctx.beginPath(); ctx.moveTo(neckX - w * 0.25, neckY); ctx.lineTo(neckX + w * 0.25, neckY); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(hipX - w * 0.2, hipY); ctx.lineTo(hipX + w * 0.2, hipY); ctx.stroke();
           }
 
-          // 2. 글자 꼬리표 배경 박스 생성
+          // 글자 라벨링 박스 패킹 (15px)
           ctx.fillStyle = boxColor; 
           ctx.font = "bold 15px Arial";
           const textStr = `${hazardType} [${score}%]`;
           const textWidth = ctx.measureText(textStr).width;
           ctx.fillRect(x, y - 24, textWidth + 10, 24);
           
-          // 3. 꼬리표 텍스트 글자 입력 (선명하게 알파 1.0 복원)
           ctx.globalAlpha = 1.0;
           ctx.fillStyle = "#000000"; 
           ctx.fillText(textStr, x + 5, y - 7);
@@ -391,10 +422,11 @@
     window.removeEventListener('resize', resizeCanvas);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     appScreen.style.display = 'none';
+    loadingText.style.display = 'block';
     
     mainIcon.innerText = "✅";
     welcomeTitle.innerText = "AI 분석 안전 종료됨";
-    welcomeDesc.innerHTML = "카메라 및 그래픽 하드웨어(WebGL) 리소스가 반환되었습니다.(스마트폰 발열 및 배터리 누수 완전 차단)";
+    welcomeDesc.innerHTML = "카메라 및 그래픽 하드웨어(WebGL) 리소스가 가뿐하게 반환되었습니다.<br>(스마트폰 발열 및 배터리 누수 완전 차단)";
     actionButton.innerText = "다시 시작하기";
     welcomeScreen.style.display = 'flex';
   }
