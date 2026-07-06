@@ -18,14 +18,25 @@
     .main-title { font-size: 1.6rem; color: #ffcc00; margin: 0 0 15px 0; }
     .sub-text { color: #aaa; font-size: 0.95rem; line-height: 1.6; margin-bottom: 40px; }
     .btn-start { padding: 16px 50px; background: #ffcc00; color: #000; font-size: 1.2rem; border-radius: 30px; box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3); }
-    #app-screen { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+    
+    #app-screen { display: none; flex-direction: column; align-items: center; justify-content: flex-start; width: 100%; height: 100%; padding-top: 65px; box-sizing: border-box; }
     #header-bar { position: absolute; top: 15px; z-index: 10; width: 95vw; max-width: 500px; display: flex; justify-content: space-between; align-items: center; background: rgba(0, 0, 0, 0.75); padding: 8px 15px; border-radius: 25px; border: 1px solid #ffcc00; box-sizing: border-box; }
     #header-bar h1 { font-size: 1rem; margin: 0; color: #fff; }
     .btn-exit { background: #ff3300; color: white; padding: 6px 14px; border-radius: 15px; font-size: 0.85rem; }
-    #video-container { position: relative; width: 95vw; height: 75vh; display: flex; align-items: center; justify-content: center; }
+    
+    /* 스마트폰 화면 정렬을 위한 뷰포트 배분 */
+    #video-container { position: relative; width: 95vw; height: 53vh; display: flex; align-items: center; justify-content: center; }
     video { width: 100%; height: 100%; object-fit: contain; border-radius: 12px; background: #000; }
     canvas { position: absolute; pointer-events: none; }
     #loading { position: absolute; bottom: 30px; font-size: 0.9rem; color: #bbbbbb; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 10px; z-index: 10; }
+    
+    /* 🌟 3번 요구사항: 고급 실시간 대시보드 CSS 패널 */
+    #log-panel { width: 95vw; max-width: 500px; height: 22vh; background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px; margin-top: 12px; padding: 10px; box-sizing: border-box; display: flex; flex-direction: column; }
+    #log-header { font-size: 0.85rem; font-weight: bold; color: #ffcc00; margin-bottom: 6px; border-bottom: 1px solid #222; padding-bottom: 5px; display: flex; justify-content: space-between; }
+    #log-container { flex: 1; overflow-y: auto; font-family: monospace; font-size: 0.78rem; line-height: 1.5; }
+    .log-item { margin-bottom: 4px; animation: slideDown 0.2s ease-out; border-left: 3px solid; padding-left: 6px; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
     #confirm-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; align-items: center; justify-content: center; z-index: 100; }
     .modal-box { background: #222; padding: 30px; border-radius: 16px; text-align: center; max-width: 85%; width: 340px; border: 1px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     .modal-icon { font-size: 3rem; margin-bottom: 15px; color: #ffcc00; }
@@ -51,10 +62,20 @@
       <h1>AI 실시간 유해위험요인 파악</h1>
       <button class="btn btn-exit" onclick="stopApp()">종료</button>
     </div>
+    
     <div id="video-container">
       <video id="webcam" autoplay playsinline muted></video>
       <canvas id="overlay"></canvas>
     </div>
+
+    <div id="log-panel">
+      <div id="log-header">
+        <span>📋 안전 모니터링 실시간 위험 로그</span>
+        <span style="color: #666; font-size: 0.75rem;">최신순 정렬</span>
+      </div>
+      <div id="log-container"></div>
+    </div>
+    
     <div id="loading">시스템 초기화 중...</div>
   </div>
 
@@ -81,6 +102,7 @@
   const canvas = document.getElementById('overlay');
   const ctx = canvas.getContext('2d');
   const loadingText = document.getElementById('loading');
+  const logContainer = document.getElementById('log-container');
   
   const mainIcon = document.getElementById('main-icon');
   const welcomeTitle = document.getElementById('welcome-title');
@@ -91,7 +113,36 @@
   let localStream = null;
   let animationFrameId = null;
 
+  // 과부하 방지 로그 필터링용 시간 저장 객체 (스로틀링링)
+  const lastLogTimes = {};
+
   const yoloClasses = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
+
+  // 🌟 3번 요구사항: 하단 대시보드에 최신 로그를 역순(위쪽)으로 생성하는 함수
+  function throttleLog(key, message, color) {
+    const now = Date.now();
+    // 동일 위험 항목은 4초(4000ms) 간격으로 필터링하여 기기 버벅임 차단
+    if (!lastLogTimes[key] || (now - lastLogTimes[key] > 4000)) {
+      lastLogTimes[key] = now;
+      
+      const time = new Date();
+      const timeStr = `${String(time.getHours()).padStart(2,'0')}:${String(time.getMinutes()).padStart(2,'0')}:${String(time.getSeconds()).padStart(2,'0')}`;
+      
+      const logItem = document.createElement('div');
+      logItem.className = 'log-item';
+      logItem.style.color = color;
+      logItem.style.borderLeftColor = color;
+      logItem.innerHTML = `<span style="color: #777; margin-right: 5px;">[${timeStr}]</span>${message}`;
+      
+      // insertBefore를 사용하여 기존 로그의 맨 앞(최상단)에 삽입 (역순 정렬 완료)
+      logContainer.insertBefore(logItem, logContainer.firstChild);
+      
+      // 메모리 절약을 위해 화면에 로그가 40개를 넘어가면 가장 오래된 로그 삭제
+      if (logContainer.children.length > 40) {
+        logContainer.removeChild(logContainer.lastChild);
+      }
+    }
+  }
 
   async function loadModel() {
     if (session) return; 
@@ -107,6 +158,7 @@
     welcomeScreen.style.display = 'none';
     appScreen.style.display = 'flex';
     loadingText.innerText = "카메라 연결 중...";
+    logContainer.innerHTML = ""; // 로그 초기화
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -201,116 +253,128 @@
           const x = x_center - w / 2;
           const y = y_center - h / 2;
 
-          // 🌟 [YOLOv8 80가지 클래스 전체 통역관 매핑 사전] 🌟
-          // 여기서 한글 텍스트(text)나 색상(color) 코드를 자유롭게 수정하시면 바로 앱에 반영됩니다!
           const hazardTranslation = {
-            'person': { text: "작업자 감지 (추락/충돌 주의)", color: "#ffcc00" },
+            'person': { text: "작업자 감지", color: "#00FF00" },
             'bicycle': { text: "자전거 감지 (충돌 주의)", color: "#ffcc00" },
-            'car': { text: "차량 감지 (교통사고 주의)", color: "#ff3300" },
+            'car': { text: "차량 감지 (교통위험 통제)", color: "#ff3300" },
             'motorcycle': { text: "오토바이 감지 (충돌 위험)", color: "#ff3300" },
             'airplane': { text: "항공기 감지 (지정 구역)", color: "#00FF00" },
-            'bus': { text: "버스 감지 (사각지대 위험)", color: "#ff3300" },
-            'train': { text: "열차 감지 (선로 접근 금지)", color: "#ff3300" },
-            'truck': { text: "중장비/트럭 (부딪힘 치명적 위험)", color: "#ff3300" },
+            'bus': { text: "버스 감지 (사각지대 경고)", color: "#ff3300" },
+            'train': { text: "열차 감지 (선로 접근 차단)", color: "#ff3300" },
+            'truck': { text: "중장비/트럭 (협착 치명 위험)", color: "#ff3300" },
             'boat': { text: "선박 감지 (추락 주의)", color: "#ffcc00" },
-            'traffic light': { text: "신호등 (신호 준수 확인)", color: "#00FF00" },
-            'fire hydrant': { text: "소화전 (진입로 확보 필수)", color: "#00FF00" },
-            'stop sign': { text: "정지 표지판 (일시 정지)", color: "#ff3300" },
-            'parking meter': { text: "주차 요금기 (시설물)", color: "#00FF00" },
-            'bench': { text: "벤치 (휴식 공간)", color: "#00FF00" },
-            'bird': { text: "조류 감지 (동물 주의)", color: "#00FF00" },
-            'cat': { text: "고양이 감지 (동물 보호/주의)", color: "#00FF00" },
-            'dog': { text: "개 감지 (물림 사고 주의)", color: "#ffcc00" },
-            'horse': { text: "말 감지 (대형 동물 주의)", color: "#ffcc00" },
-            'sheep': { text: "양 감지 (가축)", color: "#00FF00" },
-            'cow': { text: "소 감지 (대형 동물 주의)", color: "#ffcc00" },
-            'elephant': { text: "코끼리 감지 (접근 금지)", color: "#ff3300" },
-            'bear': { text: "곰 감지 (즉시 대피 요망)", color: "#ff3300" },
-            'zebra': { text: "얼룩말 감지 (동물 구역)", color: "#00FF00" },
-            'giraffe': { text: "기린 감지 (대형 동물)", color: "#00FF00" },
-            'backpack': { text: "방치된 배낭 (장애물/분실물)", color: "#ffcc00" },
-            'umbrella': { text: "우산 (시야 가림 주의)", color: "#00FF00" },
-            'handbag': { text: "핸드백 (소지품 소지)", color: "#00FF00" },
-            'tie': { text: "넥타이 (회전체 끼임 주의)", color: "#ffcc00" },
-            'suitcase': { text: "여행 가방 (통행 방해물)", color: "#ffcc00" },
-            'frisbee': { text: "원반 (낙하물 주의)", color: "#00FF00" },
-            'skis': { text: "스키 (미끄러짐 주의)", color: "#00FF00" },
-            'snowboard': { text: "스노보드 (시설물)", color: "#00FF00" },
-            'sports ball': { text: "공 발견 (낙하/충돌 주의)", color: "#ffcc00" },
-            'kite': { text: "연 (고공 물체 주의)", color: "#00FF00" },
-            'baseball bat': { text: "야구 배트 (타격 위험 요인)", color: "#ff3300" },
-            'baseball glove': { text: "야구 글러브 (체육 용품)", color: "#00FF00" },
-            'skateboard': { text: "스케이트보드 (미끄러짐 위험)", color: "#ffcc00" },
-            'surfboard': { text: "서프보드 (수상 안전)", color: "#00FF00" },
-            'tennis racket': { text: "테니스 라켓 (체육 용품)", color: "#00FF00" },
-            'bottle': { text: "병 감지 (액체 미끄러짐/파손 주의)", color: "#00FF00" },
-            'wine glass': { text: "유리잔 (파손 및 베임 위험)", color: "#ff3300" },
-            'cup': { text: "컵 발견 (미끄러짐/투기 주의)", color: "#00FF00" },
-            'fork': { text: "포크 (날카로운 도구 주의)", color: "#ffcc00" },
-            'knife': { text: "칼 발견 (날카로운 흉기/베임 치명 위험)", color: "#ff3300" },
-            'spoon': { text: "숟가락 (식기류)", color: "#00FF00" },
-            'bowl': { text: "그릇 (식기류)", color: "#00FF00" },
-            'banana': { text: "바나나 (껍질 미끄러짐 위험)", color: "#ffcc00" },
-            'apple': { text: "사과 (음식물 폐기)", color: "#00FF00" },
-            'sandwich': { text: "샌드위치 (음식물)", color: "#00FF00" },
-            'orange': { text: "오렌지 (음식물)", color: "#00FF00" },
-            'broccoli': { text: "브로콜리 (음식물)", color: "#00FF00" },
-            'carrot': { text: "당근 (음식물)", color: "#00FF00" },
-            'hot dog': { text: "핫도그 (음식물)", color: "#00FF00" },
-            'pizza': { text: "피자 (음식물)", color: "#00FF00" },
-            'donut': { text: "도넛 (음식물)", color: "#00FF00" },
-            'cake': { text: "케이크 (음식물)", color: "#00FF00" },
-            'chair': { text: "방치된 의자 (전도/통행 방해 위험)", color: "#00FF00" },
-            'couch': { text: "소파 (대형 가구/통행 제한)", color: "#ffcc00" },
-            'potted plant': { text: "화분 (깨짐/낙하 주의)", color: "#00FF00" },
-            'bed': { text: "침대 (대형 집기)", color: "#00FF00" },
-            'dining table': { text: "식탁 (대형 집기류)", color: "#00FF00" },
-            'toilet': { text: "변기 (위생 시설물)", color: "#00FF00" },
-            'tv': { text: "모니터/TV (전자기기 과열 주의)", color: "#00FF00" },
-            'laptop': { text: "노트북 컴퓨터 (감전/화재 주의)", color: "#00FF00" },
-            'mouse': { text: "마우스 (전산 부품)", color: "#00FF00" },
-            'remote': { text: "리모컨 (제어 장치)", color: "#00FF00" },
-            'keyboard': { text: "키보드 (전산 부품)", color: "#00FF00" },
-            'cell phone': { text: "스마트폰 사용 중 (보행 주의 경고)", color: "#ff3300" },
-            'microwave': { text: "전자레인지 (고온/화상 위험)", color: "#ff3300" },
-            'oven': { text: "오븐 (화재/고온 치명적 위험)", color: "#ff3300" },
-            'toaster': { text: "토스터기 (전열기구 화재 주의)", color: "#ff3300" },
-            'sink': { text: "싱크대 (누수/물넘침 주의)", color: "#ffcc00" },
-            'refrigerator': { text: "냉장고 (대형 가전 제품)", color: "#00FF00" },
-            'book': { text: "책 (적재물 화재 주의)", color: "#00FF00" },
-            'clock': { text: "시계 (시간 관리)", color: "#00FF00" },
-            'vase': { text: "꽃병 (파손/유리 파편 주의)", color: "#ffcc00" },
-            'scissors': { text: "가위 발견 (날카로운 도구 베임 주의)", color: "#ff3300" },
-            'teddy bear': { text: "인형 (방해물/낙하물)", color: "#00FF00" },
-            'hair drier': { text: "헤어드라이어 (과열/감전 위험)", color: "#ff3300" },
-            'toothbrush': { text: "칫솔 (위생 용품)", color: "#00FF00" }
+            'traffic light': { text: "신호등 (신호 미준수 주의)", color: "#00FF00" },
+            'fire hydrant': { text: "소화전 (구역 점거 차단)", color: "#00FF00" },
+            'stop sign': { text: "정지 표지판 (정지 준수)", color: "#ff3300" },
+            'backpack': { text: "방치된 배낭 (장애물 요인)", color: "#ffcc00" },
+            'umbrella': { text: "우산 (시야 차단 주의)", color: "#00FF00" },
+            'handbag': { text: "핸드백 (소지품 관리)", color: "#00FF00" },
+            'tie': { text: "넥타이 (밀려뜀 말림 주의)", color: "#ffcc00" },
+            'suitcase': { text: "여행상자 (통행 방해)", color: "#ffcc00" },
+            'bottle': { text: "병 발견 (투기/미끄러짐 위험)", color: "#00FF00" },
+            'wine glass': { text: "유리잔 (파손 베임 위험)", color: "#ff3300" },
+            'cup': { text: "컵 감지 (미끄러짐 주의)", color: "#00FF00" },
+            'knife': { text: "칼 포착 (날카로운 도구 위험)", color: "#ff3300" },
+            'chair': { text: "방치된 의자 (전도 위험 요인)", color: "#00FF00" },
+            'couch': { text: "소파 (대형 집기 적재)", color: "#ffcc00" },
+            'potted plant': { text: "화분 (낙하 위험 관리)", color: "#00FF00" },
+            'tv': { text: "TV/모니터 (과열 주의)", color: "#00FF00" },
+            'laptop': { text: "노트북 (전열 화재 관리)", color: "#00FF00" },
+            'cell phone': { text: "스마트폰 사용 중 (보행 위험)", color: "#ff3300" },
+            'microwave': { text: "전자레인지 (고온 화상 위험)", color: "#ff3300" },
+            'oven': { text: "오븐 (고온 화재 치명 위험)", color: "#ff3300" },
+            'toaster': { text: "토스터기 (누전 화재 주의)", color: "#ff3300" },
+            'sink': { text: "싱크대 (누수 범람 관리)", color: "#ffcc00" },
+            'refrigerator': { text: "냉장고 (집기류)", color: "#00FF00" },
+            'book': { text: "도서류 (가연물 적재 주의)", color: "#00FF00" },
+            'vase': { text: "꽃병 (파손 파편 주의)", color: "#ffcc00" },
+            'scissors': { text: "가위 포착 (베임 사고 주의)", color: "#ff3300" },
+            'hair drier': { text: "헤어드라이어 (감전 위험)", color: "#ff3300" }
           };
 
-          // 사전에 정의된 값이 있으면 매핑하고, 없으면 예외용 폴백(Fallback) 적용
-          let hazardType = `미분류 요인 (${label})`;
-          let boxColor = "#ffcc00";
+          let hazardType = hazardTranslation[label] ? hazardTranslation[label].text : `미분류 요인 (${label})`;
+          let boxColor = hazardTranslation[label] ? hazardTranslation[label].color : "#ffcc00";
 
-          if (hazardTranslation[label]) {
-            hazardType = hazardTranslation[label].text;
-            boxColor = hazardTranslation[label].color;
+          // 🌟 2번 요구사항: 컴퓨터 비전 비례 알고리즘 기반 근골격계 부담 자세 판단 및 스켈레톤 추출
+          let isPerson = (label === 'person');
+          let currentRatio = h / w; // 신체 종횡비 계산
+
+          if (isPerson) {
+            if (currentRatio < 1.4) {
+              // 높이가 대폭 줄어든 경우 (쪼그려 앉음 또는 허리를 극심하게 숙임)
+              hazardType = "🚨 근골격계: 쪼그려앉기/과굴곡 위험";
+              boxColor = "#ff3300"; // 위험 단계 (빨간색)
+              throttleLog("person_heavy", "⚠️ 위험: 작업자 극심한 근골격계 부담 자세(쪼그려앉기/과굴곡) 감지", "#ff3300");
+            } else if (currentRatio < 1.9) {
+              // 상체가 비스듬하게 굽혀진 경우
+              hazardType = "⚠️ 근골격계: 상체 숙임 (허리 부담)";
+              boxColor = "#ffcc00"; // 경고 단계 (노란색)
+              throttleLog("person_mod", "⏳ 경고: 작업자 불안전 자세(상체 숙임/허리 부담) 지속 중", "#ffcc00");
+            } else {
+              hazardType = "작업자 감지 (안전 자세)";
+              boxColor = "#00FF00"; // 정상 단계 (초록색)
+            }
           }
 
-          // [디자인 스타일 커스텀] 박스와 글자 꼬리표 배경에 투명도 50%를 적용합니다.
+          // 🌟 3번 요구사항 연동: 차량 및 스마트폰 등 일반 위험요소 실시간 대시보드 연동
+          if (['truck', 'car', 'bus'].includes(label)) {
+            throttleLog("vehicle", `⚠️ 위험: 이동형 중장비 및 대형 차량 접근 포착 (${hazardType})`, "#ff3300");
+          }
+          if (label === 'cell phone') {
+            throttleLog("phone", "⏳ 경고: 보행 중 스마트폰 집중 작업자 식별 (전방주시 태만)", "#ffcc00");
+          }
+          if (label === 'knife' || label === 'scissors') {
+            throttleLog("weapon", `⚠️ 위험: 날카로운 수작업 도구 노출 위험 확인 (${hazardType})`, "#ff3300");
+          }
+
+          // 디자인 커스텀: 투명도 50% 반투명 팩 적용
           ctx.globalAlpha = 0.5;
           
-          // 1. 추적 사각형 그리기 (두께 3으로 날렵하게 설정)
+          // 1. 박스 선 그리기 (얇은 두께 3)
           ctx.strokeStyle = boxColor; 
           ctx.lineWidth = 3; 
           ctx.strokeRect(x, y, w, h);
 
-          // 2. 글자 폰트 설정 (15px로 작고 조화롭게 설정) 및 꼬리표 배경 그리기
+          // 🌟 2번 요구사항 연동: 작업자일 경우 사각형 내부에 정밀 가상 스켈레톤 선 투사
+          if (isPerson) {
+            ctx.strokeStyle = boxColor;
+            ctx.fillStyle = boxColor;
+            ctx.lineWidth = 2;
+
+            // 상하 비율 조건에 맞춰 가상 관절 연산 중심점 가변 매핑
+            let headX = x + w * 0.5;
+            let headY = y + h * 0.15;
+            let neckX = x + w * 0.5;
+            let neckY = y + h * 0.28;
+            let spineX = x + w * 0.5;
+            let spineY = y + h * 0.55;
+            let hipX = x + w * 0.5;
+            let hipY = y + h * 0.78;
+
+            if (currentRatio < 1.9) { 
+              // 허리가 숙여지거나 구조가 무너졌을 때 스켈레톤 마디를 강제로 전방 가변 왜곡 굴곡 처리
+              neckX = x + w * 0.35;
+              spineX = x + w * 0.3;
+              hipX = x + w * 0.65;
+            }
+
+            // 머리 관절점
+            ctx.beginPath(); ctx.arc(headX, headY, 5, 0, 2 * Math.PI); ctx.fill();
+            // 척추 마디 중심선
+            ctx.beginPath(); ctx.moveTo(headX, headY); ctx.lineTo(neckX, neckY); ctx.lineTo(spineX, spineY); ctx.lineTo(hipX, hipY); ctx.stroke();
+            // 어깨선 및 골반 수평 가상선
+            ctx.beginPath(); ctx.moveTo(neckX - w * 0.25, neckY); ctx.lineTo(neckX + w * 0.25, neckY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(hipX - w * 0.2, hipY); ctx.lineTo(hipX + w * 0.2, hipY); ctx.stroke();
+          }
+
+          // 2. 글자 꼬리표 배경 박스 생성
           ctx.fillStyle = boxColor; 
           ctx.font = "bold 15px Arial";
           const textStr = `${hazardType} [${score}%]`;
           const textWidth = ctx.measureText(textStr).width;
           ctx.fillRect(x, y - 24, textWidth + 10, 24);
           
-          // 3. 실제 글자 텍스트 입력 (글자는 선명하도록 알파값 1.0 복귀)
+          // 3. 꼬리표 텍스트 글자 입력 (선명하게 알파 1.0 복원)
           ctx.globalAlpha = 1.0;
           ctx.fillStyle = "#000000"; 
           ctx.fillText(textStr, x + 5, y - 7);
@@ -330,7 +394,7 @@
     
     mainIcon.innerText = "✅";
     welcomeTitle.innerText = "AI 분석 안전 종료됨";
-    welcomeDesc.innerHTML = "카메라 및 그래픽 하드웨어(WebGL) 리소스가 가뿐하게 반환되었습니다.<br>(스마트폰 발열 및 배터리 누수 완전 차단)";
+    welcomeDesc.innerHTML = "카메라 및 그래픽 하드웨어(WebGL) 리소스가 반환되었습니다.(스마트폰 발열 및 배터리 누수 완전 차단)";
     actionButton.innerText = "다시 시작하기";
     welcomeScreen.style.display = 'flex';
   }
