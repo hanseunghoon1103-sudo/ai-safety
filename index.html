@@ -73,7 +73,7 @@
       box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3);
     }
 
-    /* 2. 실제 AI 카메라 분석 화면 스타일 (처음엔 숨김) */
+    /* 2. 실제 AI 카메라 분석 화면 스타일 */
     #app-screen {
       display: none; 
       flex-direction: column;
@@ -145,6 +145,66 @@
       border-radius: 10px;
       z-index: 10;
     }
+
+    /* 3. [신규] 리소스 경고 안내 커스텀 모달창 스타일 */
+    #confirm-modal {
+      position: fixed; 
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85); 
+      display: none; /* JS로 제어 */
+      align-items: center; 
+      justify-content: center; 
+      z-index: 100;
+    }
+    .modal-box {
+      background: #222; 
+      padding: 30px; 
+      border-radius: 16px; 
+      text-align: center; 
+      max-width: 85%; 
+      width: 340px;
+      border: 1px solid #444;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .modal-icon {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      color: #ffcc00;
+    }
+    .modal-text {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 25px;
+      color: #ddd;
+    }
+    /* 종료버튼 글자 강렬한 레드 색상 강조 */
+    .highlight-word {
+      color: #ff3300;
+      font-weight: bold;
+      background: rgba(255, 51, 0, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 51, 0, 0.3);
+    }
+    .modal-btn-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .btn-modal {
+      padding: 12px 24px;
+      font-size: 0.95rem;
+    }
+    .btn-cancel {
+      background: #444;
+      color: white;
+      width: 40%;
+    }
+    .btn-confirm {
+      background: #ffcc00;
+      color: black;
+      width: 60%;
+    }
   </style>
 </head>
 <body>
@@ -156,7 +216,7 @@
       아래 [시작하기] 버튼을 누르면 카메라가 활성화되며,<br>
       현장의 유해 위험 요인을 실시간으로 분석합니다.
     </p>
-    <button class="btn btn-start" id="action-button" onclick="confirmAndStart()">시작하기</button>
+    <button class="btn btn-start" id="action-button" onclick="openModal()">시작하기</button>
   </div>
 
   <div id="app-screen">
@@ -173,9 +233,25 @@
     <div id="loading">시스템 초기화 중...</div>
   </div>
 
+  <div id="confirm-modal">
+    <div class="modal-box">
+      <div class="modal-icon">⚠️</div>
+      <div class="modal-text">
+        실시간 분석(AI 연산)에 이 기기의 리소스를 사용합니다. 
+        사용 후 <span class="highlight-word">종료버튼</span>을 꼭 눌러주세요.<br><br>
+        분석을 시작하시겠습니까?
+      </div>
+      <div class="modal-btn-group">
+        <button class="btn btn-modal btn-cancel" onclick="closeModal()">취소</button>
+        <button class="btn btn-modal btn-confirm" onclick="startApp()">분석 시작하기</button>
+      </div>
+    </div>
+  </div>
+
 <script>
   const welcomeScreen = document.getElementById('welcome-screen');
   const appScreen = document.getElementById('app-screen');
+  const confirmModal = document.getElementById('confirm-modal');
   const video = document.getElementById('webcam');
   const canvas = document.getElementById('overlay');
   const ctx = canvas.getContext('2d');
@@ -196,17 +272,19 @@
     model = await cocoSsd.load();
   }
 
-  // 안내 팝업 메시지 (요청하신 문구로 반영 완료)
-  function confirmAndStart() {
-    const message = "실시간 분석에 이 기기의 GPU를 사용합니다. 종료 시 종료버튼을 꼭 눌러주세요.\n\n분석을 시작하시겠습니까?";
-    
-    if (confirm(message)) {
-      startApp();
-    }
+  // 모달창 열기 (시작하기 / 다시 시작하기 공통 작동)
+  function openModal() {
+    confirmModal.style.display = 'flex';
+  }
+
+  // 모달창 닫기
+  function closeModal() {
+    confirmModal.style.display = 'none';
   }
 
   // 카메라 및 AI 분석 시작
   async function startApp() {
+    closeModal(); // 모달창 닫기
     welcomeScreen.style.display = 'none';
     appScreen.style.display = 'flex';
     loadingText.innerText = "카메라 연결 중...";
@@ -299,7 +377,7 @@
     animationFrameId = requestAnimationFrame(detectFrame);
   }
 
-  // 종료 프로세스
+  // 종료 프로세스 (요청 문구 반영 완료)
   function stopApp() {
     if (animationFrameId) {
       cancelAnimationFrame(animationFrameId);
@@ -317,9 +395,10 @@
     
     appScreen.style.display = 'none';
     
+    // UI 텍스트 및 환경 업데이트
     mainIcon.innerText = "✅";
     welcomeTitle.innerText = "AI 분석 안전 종료됨";
-    welcomeDesc.innerHTML = "카메라 하드웨어 전원 및 AI 연산이 완벽히 차단되었습니다.<br>스마트폰의 발열과 배터리 소모가 정지되었습니다.";
+    welcomeDesc.innerHTML = "이 기기의 카메라 및 리소스 사용이 완벽히 종료되었습니다.<br>(발열과 배터리 소모 차단)";
     actionButton.innerText = "다시 시작하기";
     
     welcomeScreen.style.display = 'flex';
