@@ -27,7 +27,6 @@
     #header-bar h1 { font-size: 1.1rem; margin: 0; color: #fff; font-weight: bold; }
     .btn-exit { background: #ff3300; color: white; padding: 6px 14px; border-radius: 15px; font-size: 0.85rem; }
     
-    /* 스위치 레이아웃 2개 모드로 원복 */
     .toggle-container { display: flex; width: 100%; background: #222; border-radius: 10px; padding: 3px; box-sizing: border-box; border: 1px solid #444; }
     .toggle-btn { flex: 1; text-align: center; padding: 7px 0; font-size: 0.8rem; font-weight: bold; color: #888; border-radius: 7px; transition: all 0.2s; cursor: pointer; }
     .toggle-btn.active { background: #ffcc00; color: #000; box-shadow: 0 2px 8px rgba(255,204,0,0.3); }
@@ -59,7 +58,7 @@
 
   <div id="welcome-screen">
     <div class="icon-shield" id="main-icon">🛡️</div>
-    <h2 class="main-title">멀티모드 AI CCTV</h2>
+    <h2 class="main-title" id="welcome-title">멀티모드 AI CCTV</h2>
     <p class="sub-text" id="welcome-desc">아래 [시작하기] 버튼을 누르면 카메라가 활성화되며,<br>현장의 유해 위험 요인을 실시간으로 분석합니다.</p>
     <button class="btn btn-start" id="action-button" onclick="openModal()">시작하기</button>
   </div>
@@ -123,7 +122,7 @@
   
   let sessionCoco = null;
   let sessionSafety = null;
-  let sessionFire = null; // 🌟 상시 감시용 백그라운드 화재 세션
+  let sessionFire = null; 
   let currentBrain = 'coco'; 
   let isChanging = false;
   let localStream = null;
@@ -152,27 +151,43 @@
     }
   }
 
-  // 🌟 변경: 상시 화재 모델을 메인 뇌와 함께 세트로 동시 로딩하도록 구조 개조
+  // 🌟 수정 완료: 무한 프리징 방지용 예외 추적 장치(Try-Catch) 설계
   async function loadSelectedBrain(mode) {
     loadingText.style.display = 'block';
     
-    // 1. 상시 가동용 화재 감시 뇌가 없다면 무조건 선제 자동 로딩
-    if (!sessionFire) {
-      loadingText.innerText = "상시 화재 안전 모니터링 연동 중...";
-      sessionFire = await ort.InferenceSession.create('./yolov8n_fire.onnx', { executionProviders: ['webgl', 'wasm'] });
+    // 1. 상시 화재 감시 모델 로드부 검사
+    try {
+      if (!sessionFire) {
+        loadingText.innerText = "상시 화재 안전 모니터링 연동 중...";
+        sessionFire = await ort.InferenceSession.create('./yolov8n_fire.onnx', { executionProviders: ['webgl', 'wasm'] });
+      }
+    } catch (e) {
+      console.error(e);
+      alert("⚠️ [화재 모델 로드 실패]\n깃허브에 'yolov8n_fire.onnx' 파일이 없거나 대소문자 명칭이 틀렸습니다. 파일 업로드 상태를 다시 확인해 주세요.");
+      goToWelcomeScreen();
+      loadingText.style.display = 'none';
+      return;
     }
 
-    // 2. 선택된 메인 화면용 뇌 로딩
-    if (mode === 'coco') {
-      if (!sessionCoco) {
-        loadingText.innerText = "YOLO 고정밀 ONNX 안전 모델 로딩 중...";
-        sessionCoco = await ort.InferenceSession.create('./yolov8n_coco.onnx', { executionProviders: ['webgl', 'wasm'] });
+    // 2. 메인 모드별 모델 로드부 검사
+    try {
+      if (mode === 'coco') {
+        if (!sessionCoco) {
+          loadingText.innerText = "YOLO 고정밀 ONNX 안전 모델 로딩 중...";
+          sessionCoco = await ort.InferenceSession.create('./yolov8n_coco.onnx', { executionProviders: ['webgl', 'wasm'] });
+        }
+      } else {
+        if (!sessionSafety) {
+          loadingText.innerText = "YOLO 고정밀 ONNX 안전 모델 로딩 중...";
+          sessionSafety = await ort.InferenceSession.create('./yolov8n_safety.onnx', { executionProviders: ['webgl', 'wasm'] });
+        }
       }
-    } else {
-      if (!sessionSafety) {
-        loadingText.innerText = "YOLO 고정밀 ONNX 안전 모델 로딩 중...";
-        sessionSafety = await ort.InferenceSession.create('./yolov8n_safety.onnx', { executionProviders: ['webgl', 'wasm'] });
-      }
+    } catch (e) {
+      console.error(e);
+      alert(`⚠️ [메인 모델 로드 실패]\n선택하신 'yolov8n_${mode}.onnx' 파일이 깃허브 저장소에 정상적으로 업로드되었는지 확인해 주세요.`);
+      goToWelcomeScreen();
+      loadingText.style.display = 'none';
+      return;
     }
     loadingText.style.display = 'none';
   }
@@ -218,12 +233,15 @@
         video.height = video.videoHeight;
         
         await loadSelectedBrain(currentBrain);
-        loadingText.innerText = "YOLOv8 고속 추적 엔진 가동됨";
         
-        setTimeout(() => { loadingText.style.display = 'none'; }, 2000);
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-        detectFrame();
+        // 정상 로드가 완료된 경우에만 추적 루프 가동
+        if((currentBrain === 'coco' && sessionCoco) || (currentBrain === 'safety' && sessionSafety)) {
+          loadingText.innerText = "YOLOv8 고속 추적 엔진 가동됨";
+          setTimeout(() => { loadingText.style.display = 'none'; }, 2000);
+          window.addEventListener('resize', resizeCanvas);
+          resizeCanvas();
+          detectFrame();
+        }
       };
     } catch (err) {
       alert("카메라 연결 실패: " + err.message);
@@ -247,7 +265,6 @@
     const numClasses = activeClasses.length;
 
     if (activeSession && sessionFire && !isChanging && video.readyState === video.HAVE_ENOUGH_DATA) {
-      // 1. 영상 이미지 통합 텐서 튜닝 전처리 (연산 절약을 위해 한 번만 깎음)
       const [onnxData, w_width, h_height] = tf.tidy(() => {
         const img = tf.browser.fromPixels(video).resizeNearestNeighbor([640, 640]).toFloat().div(tf.scalar(255.0));
         return [img.transpose([2, 0, 1]).dataSync(), video.videoWidth, video.videoHeight];
@@ -255,7 +272,6 @@
 
       const inputTensor = new ort.Tensor('float32', onnxData, [1, 3, 640, 640]);
       
-      // 2. 듀얼 인프라 가동: 메인 세션과 화재 세션 독립 연산 진행
       const outputMapActive = await activeSession.run({ [activeSession.inputNames[0]]: inputTensor });
       const outputTensorActive = outputMapActive[activeSession.outputNames[0]];
 
@@ -264,9 +280,8 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 3. 수학 디코더 연산 장치 구동 (TensorFlow.js 샌드박스)
       tf.tidy(() => {
-        // --- [A] 선택 모드 (일상/건설) 텐서 연산 및 그래픽 드로잉 ---
+        // --- [A] 선택 모드 (일상/건설) 레이어 드로잉 ---
         const resA = tf.tensor(outputTensorActive.data, [1, 4 + numClasses, 8400]).transpose([0, 2, 1]);
         const boxesA = tf.slice(resA, [0, 0, 0], [-1, -1, 4]);
         const scoresA = tf.slice(resA, [0, 0, 4], [-1, -1, -1]);
@@ -327,7 +342,7 @@
           ctx.globalAlpha = 1.0; ctx.fillStyle = "#000000"; ctx.fillText(textStr, x + 5, y - 7);
         });
 
-        // --- [B] 🔥 백그라운드 화재/연기 상시 감시 및 그래픽 레이어 오버랩 드로잉 ---
+        // --- [B] 🔥 화재/연기 상시 감시 오버랩 레이어 드로잉 ---
         const resF = tf.tensor(outputTensorFire.data, [1, 4 + 2, 8400]).transpose([0, 2, 1]);
         const boxesF = tf.slice(resF, [0, 0, 0], [-1, -1, 4]);
         const scoresF = tf.slice(resF, [0, 0, 4], [-1, -1, -1]);
@@ -361,7 +376,7 @@
             throttleLog("smoke_alert", "⚠️ [발화 전조현황] 구역 내 미세 연기 및 연소 가스 트랙킹 발생", "#ffcc00");
           }
 
-          ctx.globalAlpha = 0.6; ctx.strokeStyle = boxColor; ctx.lineWidth = 4; ctx.strokeRect(x, y, w, h); // 화재는 더 굵게 표시
+          ctx.globalAlpha = 0.6; ctx.strokeStyle = boxColor; ctx.lineWidth = 4; ctx.strokeRect(x, y, w, h); 
           ctx.fillStyle = boxColor; ctx.font = "bold 15px Arial";
           const textStr = `${displayLabel} [${score}%]`; const textWidth = ctx.measureText(textStr).width;
           ctx.fillRect(x, y - 24, textWidth + 10, 24);
@@ -380,9 +395,10 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     appScreen.style.display = 'none';
-    loadingText.style.display = 'block';
+    loadingText.style.display = 'none';
     window.scrollTo(0, 0); 
     
+    // 🌟 에러 복구 완료: 복원된 id 덕분에 이제 정상 작동하며 메인 화면이 다시 나타납니다.
     mainIcon.innerText = "✅";
     welcomeTitle.innerText = "CCTV 안전 종료됨";
     welcomeDesc.innerHTML = "사용 중이던 카메라 및 그래픽 하드웨어(WebGL) 리소스를 안전하게 반환하였습니다. (스마트폰 발열 및 배터리 누수 완전 차단)";
