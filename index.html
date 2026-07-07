@@ -20,19 +20,25 @@
     .sub-text { color: #aaa; font-size: 0.95rem; line-height: 1.6; margin-bottom: 40px; }
     .btn-start { padding: 16px 50px; background: #ffcc00; color: #000; font-size: 1.2rem; border-radius: 30px; box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3); }
     
-    #app-screen { display: none; flex-direction: column; align-items: center; width: 100vw; padding-top: 80px; padding-bottom: 40px; box-sizing: border-box; }
-    #header-bar { position: fixed; top: 15px; z-index: 150; width: 95vw; max-width: 500px; display: flex; justify-content: space-between; align-items: center; background: rgba(0, 0, 0, 0.85); padding: 8px 15px; border-radius: 25px; border: 1px solid #ffcc00; box-sizing: border-box; backdrop-filter: blur(5px); }
-    #header-bar h1 { font-size: 1rem; margin: 0; color: #fff; }
-    .btn-exit { background: #ff3300; color: white; padding: 6px 14px; border-radius: 15px; font-size: 0.85rem; }
+    #app-screen { display: none; flex-direction: column; align-items: center; width: 100vw; padding-top: 125px; padding-bottom: 40px; box-sizing: border-box; }
     
-    /* 대화면 뷰포트 유지 (좌우 폭 꽉 참) */
+    /* 🌟 변경: 듀얼 브레인 스위치를 담기 위해 헤더바 높이 확장 및 정렬 */
+    #header-bar { position: fixed; top: 15px; z-index: 150; width: 95vw; max-width: 500px; display: flex; flex-direction: column; gap: 8px; background: rgba(0, 0, 0, 0.85); padding: 10px 15px; border-radius: 20px; border: 1px solid #ffcc00; box-sizing: border-box; backdrop-filter: blur(5px); }
+    .header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    #header-bar h1 { font-size: 0.95rem; margin: 0; color: #fff; }
+    .btn-exit { background: #ff3300; color: white; padding: 5px 12px; border-radius: 12px; font-size: 0.8rem; }
+    
+    /* 🌟 듀얼 브레인 토글 스위치 CSS 스타일 */
+    .toggle-container { display: flex; width: 100%; background: #222; border-radius: 10px; padding: 3px; box-sizing: border-box; border: 1px solid #444; }
+    .toggle-btn { flex: 1; text-align: center; padding: 7px 0; font-size: 0.8rem; font-weight: bold; color: #888; border-radius: 7px; transition: all 0.2s; }
+    .toggle-btn.active { background: #ffcc00; color: #000; box-shadow: 0 2px 8px rgba(255,204,0,0.3); }
+    
     #video-container { position: relative; width: 100vw; height: 70vh; max-height: 70vh; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
     video { width: 100%; height: 100%; object-fit: contain; background: #000; }
     canvas { position: absolute; pointer-events: none; }
     
     #loading { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); font-size: 0.9rem; color: #bbbbbb; background: rgba(0,0,0,0.75); padding: 6px 18px; border-radius: 20px; z-index: 160; pointer-events: none; border: 1px solid #444; }
     
-    /* 스크롤 다운 대시보드 구조 */
     #log-panel { width: 95vw; max-width: 500px; height: 250px; min-height: 250px; background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px; margin-top: 20px; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
     #log-header { font-size: 0.85rem; font-weight: bold; color: #ffcc00; margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 6px; display: flex; justify-content: space-between; }
     #log-container { flex: 1; overflow-y: auto; font-family: monospace; font-size: 0.78rem; line-height: 1.5; }
@@ -43,8 +49,6 @@
     .modal-box { background: #222; padding: 30px; border-radius: 16px; text-align: center; max-width: 85%; width: 340px; border: 1px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     .modal-icon { font-size: 3rem; margin-bottom: 15px; color: #ffcc00; }
     .modal-text { font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; color: #ddd; }
-    .highlight-word { color: #ff3300; font-weight: bold; background: rgba(255, 51, 0, 0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255, 51, 0, 0.3); }
-    .modal-btn-group { display: flex; gap: 12px; justify-content: center; }
     .btn-modal { padding: 12px 24px; font-size: 0.95rem; }
     .btn-cancel { background: #444; color: white; width: 40%; }
     .btn-confirm { background: #ffcc00; color: black; width: 60%; }
@@ -53,16 +57,22 @@
 <body>
 
   <div id="welcome-screen">
-    <div class="icon-shield" id="main-icon">🛡️</div>
-    <h2 class="main-title" id="welcome-title">AI 실시간 유해위험요인 파악</h2>
-    <p class="sub-text" id="welcome-desc">아래 [시작하기] 버튼을 누르면 카메라가 활성화되며,<br>현장의 유해 위험 요인을 실시간으로 분석합니다.</p>
+    <div class="icon-shield" id="main-icon">🧠</div>
+    <h2 class="main-title" id="welcome-title">AI 하이브리드 안전 관제 시스템</h2>
+    <p class="sub-text" id="welcome-desc">아래 [시작하기] 버튼을 누르면 카메라가 가동되며,<br>일상생활 및 건설현장 전용 인공지능 전환 관제가 가능합니다.</p>
     <button class="btn btn-start" id="action-button" onclick="openModal()">시작하기</button>
   </div>
 
   <div id="app-screen">
     <div id="header-bar">
-      <h1>AI 실시간 유해위험요인 파악</h1>
-      <button class="btn btn-exit" onclick="stopApp()">종료</button>
+      <div class="header-top">
+        <h1>AI 멀티 브레인 안전 관제</h1>
+        <button class="btn btn-exit" onclick="stopApp()">종료</button>
+      </div>
+      <div class="toggle-container">
+        <div id="mode-coco" class="toggle-btn active" onclick="switchBrain('coco')">🌐 일상생활 모드</div>
+        <div id="mode-safety" class="toggle-btn" onclick="switchBrain('safety')">🚧 건설현장 모드</div>
+      </div>
     </div>
     
     <div id="video-container">
@@ -72,7 +82,7 @@
 
     <div id="log-panel">
       <div id="log-header">
-        <span>📋 안전 모니터링 실시간 위험 로그</span>
+        <span>📋 통합 AI 실시간 안전 관제 타임라인</span>
         <span style="color: #666; font-size: 0.75rem;">최신순 정렬</span>
       </div>
       <div id="log-container"></div>
@@ -85,13 +95,12 @@
     <div class="modal-box">
       <div class="modal-icon">⚠️</div>
       <div class="modal-text">
-        실시간 분석(AI 연산)에 이 기기의 리소스를 사용합니다. 
-        사용 후 <span class="highlight-word">종료버튼</span>을 꼭 눌러주세요.<br><br>
-        분석을 시작하시겠습니까?
+        하이브리드 AI 모니터링 연산을 시작합니다.<br>
+        사용 후 <span style="color: #ff3300; font-weight: bold;">종료버튼</span>을 꼭 눌러주세요.
       </div>
       <div class="modal-btn-group">
         <button class="btn btn-modal btn-cancel" onclick="closeModal()">취소</button>
-        <button class="btn btn-modal btn-confirm" onclick="startApp()">분석 시작하기</button>
+        <button class="btn btn-modal btn-confirm" onclick="startApp()">관제 가동</button>
       </div>
     </div>
   </div>
@@ -106,27 +115,25 @@
   const loadingText = document.getElementById('loading');
   const logContainer = document.getElementById('log-container');
   
-  const mainIcon = document.getElementById('main-icon');
-  const welcomeTitle = document.getElementById('welcome-title');
-  const welcomeDesc = document.getElementById('welcome-desc');
-  const actionButton = document.getElementById('action-button');
-  
-  let session = null;
+  let sessionCoco = null;
+  let sessionSafety = null;
+  let currentBrain = 'coco'; // 기본 동작 뇌 설정 ('coco' 또는 'safety')
+  let isChanging = false;
   let localStream = null;
   let animationFrameId = null;
 
   const lastLogTimes = {};
 
-  const yoloClasses = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
+  // 🌟 두뇌별 클래스 데이터셋 정의
+  const classesCoco = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
+  const classesSafety = ['Hardhat', 'Mask', 'NO-Hardhat', 'NO-Mask', 'NO-Safety Vest', 'Person', 'Safety Cone', 'Safety Vest', 'machinery', 'vehicle'];
 
   function throttleLog(key, message, color) {
     const now = Date.now();
-    if (!lastLogTimes[key] || (now - lastLogTimes[key] > 4000)) {
+    if (!lastLogTimes[key] || (now - lastLogTimes[key] > 4500)) {
       lastLogTimes[key] = now;
-      
       const time = new Date();
       const timeStr = `${String(time.getHours()).padStart(2,'0')}:${String(time.getMinutes()).padStart(2,'0')}:${String(time.getSeconds()).padStart(2,'0')}`;
-      
       const logItem = document.createElement('div');
       logItem.className = 'log-item';
       logItem.style.color = color;
@@ -134,17 +141,41 @@
       logItem.innerHTML = `<span style="color: #777; margin-right: 5px;">[${timeStr}]</span>${message}`;
       
       logContainer.insertBefore(logItem, logContainer.firstChild);
-      
-      if (logContainer.children.length > 40) {
-        logContainer.removeChild(logContainer.lastChild);
-      }
+      if (logContainer.children.length > 35) logContainer.removeChild(logContainer.lastChild);
     }
   }
 
-  async function loadModel() {
-    if (session) return; 
-    loadingText.innerText = "YOLO 고정밀 ONNX 안전 모델 로딩 중...";
-    session = await ort.InferenceSession.create('./yolov8n.onnx', { executionProviders: ['webgl', 'wasm'] });
+  // 🌟 모드에 따라 알맞은 모델 파일을 서서히 로딩하는 지능형 함수
+  async function loadSelectedBrain(mode) {
+    loadingText.style.display = 'block';
+    if (mode === 'coco') {
+      if (!sessionCoco) {
+        loadingText.innerText = "🌐 일상생활 사물인식 뇌 깨우는 중...";
+        sessionCoco = await ort.InferenceSession.create('./yolov8n_coco.onnx', { executionProviders: ['webgl', 'wasm'] });
+      }
+    } else {
+      if (!sessionSafety) {
+        loadingText.innerText = "🚧 건설안전 100회 정밀 뇌 깨우는 중...";
+        sessionSafety = await ort.InferenceSession.create('./yolov8n_safety.onnx', { executionProviders: ['webgl', 'wasm'] });
+      }
+    }
+    loadingText.style.display = 'none';
+  }
+
+  // 🌟 듀얼 브레인 실시간 스위칭 이벤트 함수
+  async function switchBrain(mode) {
+    if (currentBrain === mode || isChanging) return;
+    isChanging = true;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    document.getElementById('mode-coco').classList.remove('active');
+    document.getElementById('mode-safety').classList.remove('active');
+    document.getElementById(`mode-${mode}`).classList.add('active');
+    
+    await loadSelectedBrain(mode);
+    currentBrain = mode;
+    throttleLog("system_switch", `🔄 인공지능 모델이 [${mode === 'coco' ? '일상생활 모드' : '건설현장 모드'}]로 안전 전환되었습니다.`, "#ffcc00");
+    isChanging = false;
   }
 
   function openModal() { confirmModal.style.display = 'flex'; }
@@ -154,7 +185,7 @@
     closeModal();
     welcomeScreen.style.display = 'none';
     appScreen.style.display = 'flex';
-    loadingText.innerText = "카메라 연결 중...";
+    loadingText.innerText = "카메라 무선 동기화 중...";
     logContainer.innerHTML = "";
     window.scrollTo(0, 0);
     
@@ -170,14 +201,11 @@
         video.width = video.videoWidth;
         video.height = video.videoHeight;
         
-        await loadModel();
-        loadingText.innerText = "YOLOv8 고속 추적 엔진 가동됨";
-        
-        setTimeout(() => { loadingText.style.display = 'none'; }, 2000);
+        // 시작 모드 두뇌 선점 로딩
+        await loadSelectedBrain(currentBrain);
         
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
-        
         detectFrame();
       };
     } catch (err) {
@@ -197,26 +225,25 @@
   }
 
   async function detectFrame() {
-    if (!session) return;
+    // 활성화된 뇌 인스턴스 선택 고정
+    const activeSession = (currentBrain === 'coco') ? sessionCoco : sessionSafety;
+    const activeClasses = (currentBrain === 'coco') ? classesCoco : classesSafety;
+    const numClasses = activeClasses.length;
 
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    if (activeSession && !isChanging && video.readyState === video.HAVE_ENOUGH_DATA) {
       const [onnxData, w_width, h_height] = tf.tidy(() => {
-        const img = tf.browser.fromPixels(video)
-          .resizeNearestNeighbor([640, 640])
-          .toFloat()
-          .div(tf.scalar(255.0));
-        const transposed = img.transpose([2, 0, 1]); 
-        return [transposed.dataSync(), video.videoWidth, video.videoHeight];
+        const img = tf.browser.fromPixels(video).resizeNearestNeighbor([640, 640]).toFloat().div(tf.scalar(255.0));
+        return [img.transpose([2, 0, 1]).dataSync(), video.videoWidth, video.videoHeight];
       });
 
       const inputTensor = new ort.Tensor('float32', onnxData, [1, 3, 640, 640]);
-      const feeds = { [session.inputNames[0]]: inputTensor };
-      
-      const outputMap = await session.run(feeds);
-      const outputTensor = outputMap[session.outputNames[0]];
+      const feeds = { [activeSession.inputNames[0]]: inputTensor };
+      const outputMap = await activeSession.run(feeds);
+      const outputTensor = outputMap[activeSession.outputNames[0]];
 
       tf.tidy(() => {
-        const result = tf.tensor(outputTensor.data, [1, 84, 8400]);
+        // 🌟 두뇌 모드별로 4개 좌표 + 클래스 개수(80개 또는 10개)에 맞춰 수학적 디코딩 규격 가변화 적용
+        const result = tf.tensor(outputTensor.data, [1, 4 + numClasses, 8400]);
         const resTransposed = result.transpose([0, 2, 1]); 
 
         const boxes = tf.slice(resTransposed, [0, 0, 0], [-1, -1, 4]);
@@ -225,13 +252,7 @@
         const maxScores = scores.max(2).squeeze();
         const classes = scores.argMax(2).squeeze();
 
-        const nmsIndices = tf.image.nonMaxSuppression(
-          boxes.squeeze(), 
-          maxScores, 
-          20,        
-          0.45,      
-          0.45       
-        ).arraySync();
+        const nmsIndices = tf.image.nonMaxSuppression(boxes.squeeze(), maxScores, 15, 0.35, 0.50).arraySync();
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -243,7 +264,7 @@
           const box = boxesArray[idx];
           const classIdx = classesArray[idx];
           const score = Math.round(scoresArray[idx] * 100);
-          const label = yoloClasses[classIdx];
+          const label = activeClasses[classIdx];
 
           const x_center = box[0] * (canvas.width / 640);
           const y_center = box[1] * (canvas.height / 640);
@@ -253,156 +274,102 @@
           const x = x_center - w / 2;
           const y = y_center - h / 2;
 
-          // 🌟 [전면 동기화] 사용자의 스프레드시트 요청이 완벽 반영된 80가지 대형 통역사전
-          const hazardTranslation = {
-            'person': { text: "작업자", color: "#00FF00" },
-            'bicycle': { text: "자전거 (충돌 주의)", color: "#ffcc00" },
-            'car': { text: "차량 (교통위험 통제)", color: "#ff3300" },
-            'motorcycle': { text: "오토바이 (충돌 위험)", color: "#ff3300" },
-            'airplane': { text: "항공기 (접근 주의)", color: "#ffcc00" },
-            'bus': { text: "버스 (사각지대 경고)", color: "#ff3300" },
-            'train': { text: "열차 (선로 접근 차단)", color: "#ff3300" },
-            'truck': { text: "중장비/트럭 (협착 치명 위험)", color: "#ff3300" },
-            'boat': { text: "선박 (충돌/추락 주의)", color: "#ffcc00" },
-            'traffic light': { text: "신호등 (신호 준수)", color: "#00FF00" },
-            'fire hydrant': { text: "소화전 (구역 점거 차단)", color: "#00FF00" },
-            'stop sign': { text: "정지 표지판 (정지 준수)", color: "#ff3300" },
-            'parking meter': { text: "숨김", color: "#ffcc00" },
-            'bench': { text: "숨김", color: "#ffcc00" },
-            'bird': { text: "숨김", color: "#ffcc00" },
-            'cat': { text: "숨김", color: "#ffcc00" },
-            'dog': { text: "숨김", color: "#ffcc00" },
-            'horse': { text: "숨김", color: "#ffcc00" },
-            'sheep': { text: "숨김", color: "#ffcc00" },
-            'cow': { text: "숨김", color: "#ffcc00" },
-            'elephant': { text: "곰 (피신 요망)", color: "#ffcc00" },
-            'bear': { text: "곰 (피신 요망)", color: "#ffcc00" },
-            'zebra': { text: "숨김", color: "#ffcc00" },
-            'giraffe': { text: "숨김", color: "#ffcc00" },
-            'backpack': { text: "방치된 배낭 (장애물 요인)", color: "#00FF00" },
-            'umbrella': { text: "우산 (시야 차단 주의)", color: "#00FF00" },
-            'handbag': { text: "숨김", color: "#00FF00" },
-            'tie': { text: "숨김", color: "#ffcc00" },
-            'suitcase': { text: "여행가방 (통행 방해)", color: "#00FF00" },
-            'bottle': { text: "병 (취급주의)", color: "#00FF00" },
-            'wine glass': { text: "유리잔 (취급주의)", color: "#00FF00" },
-            'cup': { text: "컵 감지 (취급주의)", color: "#00FF00" },
-            'fork': { text: "포크 (취급주의)", color: "#00FF00" },
-            'knife': { text: "칼 (치명상 가능)", color: "#ff3300" },
-            'spoon': { text: "숨김", color: "#ffcc00" },
-            'bowl': { text: "숨김", color: "#ffcc00" },
-            'banana': { text: "숨김", color: "#ffcc00" },
-            'apple': { text: "숨김", color: "#ffcc00" },
-            'sandwich': { text: "숨김", color: "#ffcc00" },
-            'orange': { text: "숨김", color: "#ffcc00" },
-            'broccoli': { text: "숨김", color: "#ffcc00" },
-            'carrot': { text: "숨김", color: "#ffcc00" },
-            'hot dog': { text: "숨김", color: "#ffcc00" },
-            'pizza': { text: "숨김", color: "#ffcc00" },
-            'donut': { text: "숨김", color: "#ffcc00" },
-            'cake': { text: "숨김", color: "#ffcc00" },
-            'chair': { text: "방치된 의자 (전도 위험)", color: "#00FF00" },
-            'couch': { text: "소파 (대형 집기 적재)", color: "#00FF00" },
-            'potted plant': { text: "화분 (낙하 위험)", color: "#00FF00" },
-            'bed': { text: "숨김", color: "#ffcc00" },
-            'dining table': { text: "숨김", color: "#ffcc00" },
-            'toilet': { text: "숨김", color: "#ffcc00" },
-            'tv': { text: "TV/모니터 (과열 주의)", color: "#00FF00" },
-            'laptop': { text: "노트북 (전열 화재 관리)", color: "#00FF00" },
-            'mouse': { text: "숨김", color: "#ffcc00" },
-            'remote': { text: "숨김", color: "#ffcc00" },
-            'keyboard': { text: "숨김", color: "#ffcc00" },
-            'cell phone': { text: "스마트폰 (보행 주의)", color: "#00FF00" },
-            'microwave': { text: "전자레인지 (고온 화상 위험)", color: "#ff3300" },
-            'oven': { text: "오븐 (고온 화재 치명 위험)", color: "#ff3300" },
-            'toaster': { text: "토스터기 (누전 화재 주의)", color: "#ff3300" },
-            'sink': { text: "숨김", color: "#ffcc00" },
-            'refrigerator': { text: "숨김", color: "#ffcc00" },
-            'book': { text: "숨김", color: "#00FF00" },
-            'clock': { text: "숨김", color: "#ffcc00" },
-            'vase': { text: "꽃병 (파손 파편 주의)", color: "#ffcc00" },
-            'scissors': { text: "가위 (베임 위험)", color: "#ff3300" },
-            'teddy bear': { text: "숨김", color: "#ffcc00" },
-            'hair drier': { text: "헤어드라이어 (감전 위험)", color: "#ff3300" },
-            'toothbrush': { text: "숨김", color: "#ffcc00" }
-          };
+          let displayLabel = "";
+          let boxColor = "#ffcc00";
 
-          let hazardType = hazardTranslation[label] ? hazardTranslation[label].text : `미분류 요인 (${label})`;
-          let boxColor = hazardTranslation[label] ? hazardTranslation[label].color : "#ffcc00";
+          // ----------------------------------------------------
+          // 🧠 분기 대리점 1: 일상생활 모드 (COCO) 동작 알고리즘
+          // ----------------------------------------------------
+          if (currentBrain === 'coco') {
+            const cocoTranslation = {
+              'person': { text: "작업자 포착", color: "#00FF00" },
+              'bicycle': { text: "자전거 (충돌 주의)", color: "#ffcc00" },
+              'car': { text: "차량 (교통위험 통제)", color: "#ff3300" },
+              'motorcycle': { text: "오토바이 (충돌 위험)", color: "#ff3300" },
+              'airplane': { text: "항공기 (접근 주의)", color: "#ffcc00" },
+              'bus': { text: "버스 (사각지대 경고)", color: "#ff3300" },
+              'train': { text: "열차 (선로 접근 차단)", color: "#ff3300" },
+              'truck': { text: "중장비/트럭 (협착 위험)", color: "#ff3300" },
+              'boat': { text: "선박 (충돌/추락 주의)", color: "#ffcc00" },
+              'traffic light': { text: "신호등 (신호 준수)", color: "#00FF00" },
+              'fire hydrant': { text: "소화전 (구역 점거 차단)", color: "#00FF00" },
+              'stop sign': { text: "정지 표지판 (정지 준수)", color: "#ff3300" },
+              'backpack': { text: "방치된 배낭 (장애물 요인)", color: "#00FF00" },
+              'umbrella': { text: "우산 (시야 차단 주의)", color: "#00FF00" },
+              'suitcase': { text: "여행가방 (통행 방해)", color: "#00FF00" },
+              'bottle': { text: "병 (취급주의)", color: "#00FF00" },
+              'wine glass': { text: "유리잔 (취급주의)", color: "#00FF00" },
+              'cup': { text: "컵 감지 (취급주의)", color: "#00FF00" },
+              'fork': { text: "포크 (취급주의)", color: "#00FF00" },
+              'knife': { text: "칼 (치명상 가능)", color: "#ff3300" },
+              'chair': { text: "방치된 의자 (전도 위험)", color: "#00FF00" },
+              'couch': { text: "소파 (대형 집기 적재)", color: "#00FF00" },
+              'potted plant': { text: "화분 (낙하 위험)", color: "#00FF00" },
+              'tv': { text: "TV/모니터 (과열 주의)", color: "#00FF00" },
+              'laptop': { text: "노트북 (전열 화재 관리)", color: "#00FF00" },
+              'cell phone': { text: "스마트폰 (보행 주의)", color: "#00FF00" },
+              'microwave': { text: "전자레인지 (고온 화상 위험)", color: "#ff3300" },
+              'oven': { text: "오븐 (고온 화재 치명 위험)", color: "#ff3300" },
+              'toaster': { text: "토스터기 (누전 화재 주의)", color: "#ff3300" },
+              'vase': { text: "꽃병 (파손 파편 주의)", color: "#ffcc00" },
+              'scissors': { text: "가위 (베임 위험)", color: "#ff3300" },
+              'hair drier': { text: "헤어드라이어 (감전 위험)", color: "#ff3300" },
+              // 사용자 편의: 지정을 패스한 '숨김' 키워드 가변 자동 매핑
+              'parking meter':'숨김','bench':'숨김','bird':'숨김','cat':'숨김','dog':'숨김','horse':'숨김','sheep':'숨김','cow':'숨김','zebra':'숨김','giraffe':'숨김','handbag':'숨김','tie':'숨김','spoon':'숨김','bowl':'숨김','banana':'숨김','apple':'숨김','sandwich':'숨김','orange':'숨김','broccoli':'숨김','carrot':'숨김','hot dog':'숨김','pizza':'숨김','donut':'숨김','cake':'숨김','bed':'숨김','dining table':'숨김','toilet':'숨김','mouse':'숨김','remote':'숨김','keyboard':'숨김','sink':'숨김','refrigerator':'숨김','book':'숨김','clock':'숨김','teddy bear':'숨김','toothbrush':'숨김'
+            };
 
-          // 🌟 [핵심 로직] 사용자가 '숨김'으로 지정한 사물은 박스 드로잉 및 로그 시스템 전체 패스(Skip)
-          if (hazardType === "숨김") {
-            return;
-          }
+            const matched = cocoTranslation[label];
+            if (matched === "숨김" || !matched) return; // 숨김은 드로잉 스킵
 
-          let isPerson = (label === 'person');
-          let currentRatio = h / w;
+            displayLabel = matched.text;
+            boxColor = matched.color;
 
-          // 인체공학 관절 비례 분석 시스템 활성화
-          if (isPerson) {
-            if (currentRatio < 1.4) {
-              hazardType = "🚨 근골격계: 쪼그려앉기/과굴곡 위험";
-              boxColor = "#ff3300";
-              throttleLog("person_heavy", "⚠️ 위험: 작업자 극심한 근골격계 부담 자세(쪼그려앉기/과굴곡) 감지", "#ff3300");
-            } else if (currentRatio < 1.9) {
-              hazardType = "⚠️ 근골격계: 상체 숙임 (허리 부담)";
-              boxColor = "#ffcc00";
-              throttleLog("person_mod", "⏳ 경고: 작업자 불안전 자세(상체 숙임/허리 부담) 지속 중", "#ffcc00");
-            } else {
-              hazardType = "작업자 감지 (안전 자세)";
-              boxColor = "#00FF00";
+            if (boxColor === "#ff3300") throttleLog(label, `⚠️ 일반위험 감지: [${displayLabel}] 구역 내 안전거리 확보`, "#ff3300");
+          } 
+          // ----------------------------------------------------
+          // 🧠 분기 대리점 2: 건설현장 모드 (SAFETY) 동작 알고리즘
+          // ----------------------------------------------------
+          else {
+            if (label === 'Hardhat') {
+              displayLabel = "안전모 착용 확인"; boxColor = "#00FF00";
+            } else if (label === 'NO-Hardhat') {
+              displayLabel = "🚨 위험: 안전모 미착용!!!"; boxColor = "#ff3300";
+              throttleLog("no_hardhat", "🚨 중대위험: 현장 내 안전모 미착용 작업자 적발! 즉시 조치 요망", "#ff3300");
+            } else if (label === 'Safety Vest') {
+              displayLabel = "안전조끼 착용 확인"; boxColor = "#00FF00";
+            } else if (label === 'NO-Safety Vest') {
+              displayLabel = "🚨 위험: 안전조끼 미착용!!!"; boxColor = "#ff3300";
+              throttleLog("no_vest", "🚨 중대위험: 안전조끼 미착용 작업자 식별! 안전통제 필요", "#ff3300");
+            } else if (label === 'Mask') {
+              displayLabel = "방진마스크 착용"; boxColor = "#00FF00";
+            } else if (label === 'NO-Mask') {
+              displayLabel = "⏳ 주의: 마스크 미착용"; boxColor = "#ffcc00";
+              throttleLog("no_mask", "⏳ 보건경고: 분진 작업 구역 내 마스크 미착용자 주의 안내", "#ffcc00");
+            } else if (label === 'Person') {
+              displayLabel = "작업자 식별"; boxColor = "#00FF00";
+            } else if (label === 'Safety Cone') {
+              displayLabel = "안전콘 (통제선)"; boxColor = "#ffcc00";
+            } else if (label === 'machinery') {
+              displayLabel = "⚙️ 건설기계/장비 작동중"; boxColor = "#ffcc00";
+              throttleLog("machine", "⚙️ 장비알림: 중장비 및 가설 설비 작동 구역 접근 주의", "#ffcc00");
+            } else if (label === 'vehicle') {
+              displayLabel = "⚠️ 위험: 차량 접근중"; boxColor = "#ff3300";
+              throttleLog("vehicle", "⚠️ 교통안전: 작업 구역 내 이동형 차량/덤프 트랙킹 확인", "#ff3300");
+            } else if (label === 'elephant' || label === 'bear') {
+              displayLabel = "곰 (피신 요망)"; boxColor = "#ff3300";
+              throttleLog("wild_animal", "🚨 긴급 상황: 주변 위험 동물 식별! 즉시 대피하십시오", "#ff3300");
             }
           }
 
-          // 위험 사물 감지 대시보드 실시간 자동 연동
-          if (!isPerson) {
-            if (boxColor === "#ff3300") {
-              throttleLog(label, `⚠️ 위험 요소 진입 포착: [${hazardType}]`, "#ff3300");
-            } else if (['bear', 'elephant'].includes(label)) {
-              // 곰/야생동물 출현 특수 로그 강제 연동
-              throttleLog("bear_wild", `🚨 긴급 상황: 주변 위험 동물 식별! [${hazardType}] 즉시 대피`, "#ff3300");
-            } else if (boxColor === "#ffcc00" && (hazardType.includes("주의") || hazardType.includes("방해"))) {
-              throttleLog(label, `⏳ 경고 요인 식별: [${hazardType}]`, "#ffcc00");
-            }
-          }
-
-          // 디자인 커스텀: 반투명 가늘고 날렵한 스타일
+          // 드로잉 가이드 투명도 50% 반투명 고정
           ctx.globalAlpha = 0.5;
           ctx.strokeStyle = boxColor; 
           ctx.lineWidth = 3; 
           ctx.strokeRect(x, y, w, h);
 
-          // 작업자 전용 가상 스켈레톤 중심선 투사
-          if (isPerson) {
-            ctx.strokeStyle = boxColor;
-            ctx.fillStyle = boxColor;
-            ctx.lineWidth = 2;
-
-            let headX = x + w * 0.5;
-            let headY = y + h * 0.15;
-            let neckX = x + w * 0.5;
-            let neckY = y + h * 0.28;
-            let spineX = x + w * 0.5;
-            let spineY = y + h * 0.55;
-            let hipX = x + w * 0.5;
-            let hipY = y + h * 0.78;
-
-            if (currentRatio < 1.9) { 
-              neckX = x + w * 0.35;
-              spineX = x + w * 0.3;
-              hipX = x + w * 0.65;
-            }
-
-            ctx.beginPath(); ctx.arc(headX, headY, 5, 0, 2 * Math.PI); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(headX, headY); ctx.lineTo(neckX, neckY); ctx.lineTo(spineX, spineY); ctx.lineTo(hipX, hipY); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(neckX - w * 0.25, neckY); ctx.lineTo(neckX + w * 0.25, neckY); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(hipX - w * 0.2, hipY); ctx.lineTo(hipX + w * 0.2, hipY); ctx.stroke();
-          }
-
-          // 글자 라벨링 박스 패킹 (15px)
           ctx.fillStyle = boxColor; 
           ctx.font = "bold 15px Arial";
-          const textStr = `${hazardType} [${score}%]`;
+          const textStr = `${displayLabel} [${score}%]`;
           const textWidth = ctx.measureText(textStr).width;
           ctx.fillRect(x, y - 24, textWidth + 10, 24);
           
@@ -425,9 +392,8 @@
     loadingText.style.display = 'block';
     
     mainIcon.innerText = "✅";
-    welcomeTitle.innerText = "AI 분석 안전 종료됨";
-    welcomeDesc.innerHTML = "카메라 및 그래픽 하드웨어(WebGL) 리소스가 가뿐하게 반환되었습니다.<br>(스마트폰 발열 및 배터리 누수 완전 차단)";
-    actionButton.innerText = "다시 시작하기";
+    welcomeTitle.innerText = "통합 안전 관제 해제됨";
+    welcomeDesc.innerHTML = "카메라 리소스 및 듀얼 브레인 WebGL 엔진이 완전히 초기화되었습니다.<br>(스마트폰 발열 방지 로직 적용 완료)";
     welcomeScreen.style.display = 'flex';
   }
 
