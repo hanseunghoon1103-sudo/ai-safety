@@ -151,25 +151,27 @@
     }
   }
 
-  // 🌟 수정 완료: 무한 프리징 방지용 예외 추적 장치(Try-Catch) 설계
   async function loadSelectedBrain(mode) {
     loadingText.style.display = 'block';
     
-    // 1. 상시 화재 감시 모델 로드부 검사
-    try {
-      if (!sessionFire) {
-        loadingText.innerText = "상시 화재 안전 모니터링 연동 중...";
+    if (!sessionFire) {
+      loadingText.innerText = "상시 화재 안전 모니터링 연동 중...";
+      try {
         sessionFire = await ort.InferenceSession.create('./yolov8n_fire.onnx', { executionProviders: ['webgl', 'wasm'] });
+      } catch (e) {
+        console.log("화재 모델 WebGL 로드 실패, WASM 모드로 안전 전환 우회합니다.", e);
+        try {
+          sessionFire = await ort.InferenceSession.create('./yolov8n_fire.onnx', { executionProviders: ['wasm'] });
+        } catch (err) {
+          console.error(err);
+          alert("⚠️ [화재 모델 시스템 오류]\n업로드된 'yolov8n_fire.onnx' 파일이 깨졌거나 캐시 지연 중입니다. 브라우저 강력 새로고침(Ctrl+F5) 후 재시도해 주세요.");
+          goToWelcomeScreen();
+          loadingText.style.display = 'none';
+          return;
+        }
       }
-    } catch (e) {
-      console.error(e);
-      alert("⚠️ [화재 모델 로드 실패]\n깃허브에 'yolov8n_fire.onnx' 파일이 없거나 대소문자 명칭이 틀렸습니다. 파일 업로드 상태를 다시 확인해 주세요.");
-      goToWelcomeScreen();
-      loadingText.style.display = 'none';
-      return;
     }
 
-    // 2. 메인 모드별 모델 로드부 검사
     try {
       if (mode === 'coco') {
         if (!sessionCoco) {
@@ -184,7 +186,7 @@
       }
     } catch (e) {
       console.error(e);
-      alert(`⚠️ [메인 모델 로드 실패]\n선택하신 'yolov8n_${mode}.onnx' 파일이 깃허브 저장소에 정상적으로 업로드되었는지 확인해 주세요.`);
+      alert(`⚠️ [메인 모델 로드 실패]\n선택하신 'yolov8n_${mode}.onnx' 파일을 읽을 수 없습니다. 파일 상태나 브라우저 캐시를 확인해 주세요.`);
       goToWelcomeScreen();
       loadingText.style.display = 'none';
       return;
@@ -234,8 +236,7 @@
         
         await loadSelectedBrain(currentBrain);
         
-        // 정상 로드가 완료된 경우에만 추적 루프 가동
-        if((currentBrain === 'coco' && sessionCoco) || (currentBrain === 'safety' && sessionSafety)) {
+        if ((currentBrain === 'coco' && sessionCoco) || (currentBrain === 'safety' && sessionSafety)) {
           loadingText.innerText = "YOLOv8 고속 추적 엔진 가동됨";
           setTimeout(() => { loadingText.style.display = 'none'; }, 2000);
           window.addEventListener('resize', resizeCanvas);
@@ -342,7 +343,7 @@
           ctx.globalAlpha = 1.0; ctx.fillStyle = "#000000"; ctx.fillText(textStr, x + 5, y - 7);
         });
 
-        // --- [B] 🔥 화재/연기 상시 감시 오버랩 레이어 드로잉 ---
+        // --- [B] 🔥 화재/연기 상시 감시 레이어 오버랩 드로잉 ---
         const resF = tf.tensor(outputTensorFire.data, [1, 4 + 2, 8400]).transpose([0, 2, 1]);
         const boxesF = tf.slice(resF, [0, 0, 0], [-1, -1, 4]);
         const scoresF = tf.slice(resF, [0, 0, 4], [-1, -1, -1]);
@@ -398,7 +399,6 @@
     loadingText.style.display = 'none';
     window.scrollTo(0, 0); 
     
-    // 🌟 에러 복구 완료: 복원된 id 덕분에 이제 정상 작동하며 메인 화면이 다시 나타납니다.
     mainIcon.innerText = "✅";
     welcomeTitle.innerText = "CCTV 안전 종료됨";
     welcomeDesc.innerHTML = "사용 중이던 카메라 및 그래픽 하드웨어(WebGL) 리소스를 안전하게 반환하였습니다. (스마트폰 발열 및 배터리 누수 완전 차단)";
