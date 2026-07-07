@@ -22,15 +22,13 @@
     
     #app-screen { display: none; flex-direction: column; align-items: center; width: 100vw; padding-top: 125px; padding-bottom: 40px; box-sizing: border-box; }
     
-    /* 🌟 변경: 듀얼 브레인 스위치를 담기 위해 헤더바 높이 확장 및 정렬 */
     #header-bar { position: fixed; top: 15px; z-index: 150; width: 95vw; max-width: 500px; display: flex; flex-direction: column; gap: 8px; background: rgba(0, 0, 0, 0.85); padding: 10px 15px; border-radius: 20px; border: 1px solid #ffcc00; box-sizing: border-box; backdrop-filter: blur(5px); }
     .header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-    #header-bar h1 { font-size: 0.95rem; margin: 0; color: #fff; }
-    .btn-exit { background: #ff3300; color: white; padding: 5px 12px; border-radius: 12px; font-size: 0.8rem; }
+    #header-bar h1 { font-size: 1rem; margin: 0; color: #fff; }
+    .btn-exit { background: #ff3300; color: white; padding: 6px 14px; border-radius: 15px; font-size: 0.85rem; }
     
-    /* 🌟 듀얼 브레인 토글 스위치 CSS 스타일 */
     .toggle-container { display: flex; width: 100%; background: #222; border-radius: 10px; padding: 3px; box-sizing: border-box; border: 1px solid #444; }
-    .toggle-btn { flex: 1; text-align: center; padding: 7px 0; font-size: 0.8rem; font-weight: bold; color: #888; border-radius: 7px; transition: all 0.2s; }
+    .toggle-btn { flex: 1; text-align: center; padding: 7px 0; font-size: 0.8rem; font-weight: bold; color: #888; border-radius: 7px; transition: all 0.2s; cursor: pointer; }
     .toggle-btn.active { background: #ffcc00; color: #000; box-shadow: 0 2px 8px rgba(255,204,0,0.3); }
     
     #video-container { position: relative; width: 100vw; height: 70vh; max-height: 70vh; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
@@ -48,7 +46,9 @@
     #confirm-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; align-items: center; justify-content: center; z-index: 300; }
     .modal-box { background: #222; padding: 30px; border-radius: 16px; text-align: center; max-width: 85%; width: 340px; border: 1px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     .modal-icon { font-size: 3rem; margin-bottom: 15px; color: #ffcc00; }
-    .modal-text { font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; color: #ddd; }
+    .modal-text { font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; color: #ddd; text-align: center; }
+    .highlight-word { color: #ff3300; font-weight: bold; background: rgba(255, 51, 0, 0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255, 51, 0, 0.3); }
+    .modal-btn-group { display: flex; gap: 12px; justify-content: center; }
     .btn-modal { padding: 12px 24px; font-size: 0.95rem; }
     .btn-cancel { background: #444; color: white; width: 40%; }
     .btn-confirm { background: #ffcc00; color: black; width: 60%; }
@@ -57,16 +57,16 @@
 <body>
 
   <div id="welcome-screen">
-    <div class="icon-shield" id="main-icon">🧠</div>
-    <h2 class="main-title" id="welcome-title">AI 하이브리드 안전 관제 시스템</h2>
-    <p class="sub-text" id="welcome-desc">아래 [시작하기] 버튼을 누르면 카메라가 가동되며,<br>일상생활 및 건설현장 전용 인공지능 전환 관제가 가능합니다.</p>
+    <div class="icon-shield" id="main-icon">🛡️</div>
+    <h2 class="main-title" id="welcome-title">AI 실시간 유해위험요인 파악</h2>
+    <p class="sub-text" id="welcome-desc">아래 [시작하기] 버튼을 누르면 카메라가 활성화되며,<br>현장의 유해 위험 요인을 실시간으로 분석합니다.</p>
     <button class="btn btn-start" id="action-button" onclick="openModal()">시작하기</button>
   </div>
 
   <div id="app-screen">
     <div id="header-bar">
       <div class="header-top">
-        <h1>AI 멀티 브레인 안전 관제</h1>
+        <h1>AI 실시간 유해위험요인 파악</h1>
         <button class="btn btn-exit" onclick="stopApp()">종료</button>
       </div>
       <div class="toggle-container">
@@ -82,7 +82,7 @@
 
     <div id="log-panel">
       <div id="log-header">
-        <span>📋 통합 AI 실시간 안전 관제 타임라인</span>
+        <span>📋 안전 모니터링 실시간 위험 로그</span>
         <span style="color: #666; font-size: 0.75rem;">최신순 정렬</span>
       </div>
       <div id="log-container"></div>
@@ -95,12 +95,13 @@
     <div class="modal-box">
       <div class="modal-icon">⚠️</div>
       <div class="modal-text">
-        하이브리드 AI 모니터링 연산을 시작합니다.<br>
-        사용 후 <span style="color: #ff3300; font-weight: bold;">종료버튼</span>을 꼭 눌러주세요.
+        실시간 분석(AI 연산)에 이 기기의 리소스를 사용합니다. 
+        사용 후 <span class="highlight-word">종료버튼</span>을 꼭 눌러주세요.<br><br>
+        분석을 시작하시겠습니까?
       </div>
       <div class="modal-btn-group">
         <button class="btn btn-modal btn-cancel" onclick="closeModal()">취소</button>
-        <button class="btn btn-modal btn-confirm" onclick="startApp()">관제 가동</button>
+        <button class="btn btn-modal btn-confirm" onclick="startApp()">분석 시작하기</button>
       </div>
     </div>
   </div>
@@ -114,17 +115,20 @@
   const ctx = canvas.getContext('2d');
   const loadingText = document.getElementById('loading');
   const logContainer = document.getElementById('log-container');
+  const mainIcon = document.getElementById('main-icon');
+  const welcomeTitle = document.getElementById('welcome-title');
+  const welcomeDesc = document.getElementById('welcome-desc');
+  const actionButton = document.getElementById('action-button');
   
   let sessionCoco = null;
   let sessionSafety = null;
-  let currentBrain = 'coco'; // 기본 동작 뇌 설정 ('coco' 또는 'safety')
+  let currentBrain = 'coco'; 
   let isChanging = false;
   let localStream = null;
   let animationFrameId = null;
 
   const lastLogTimes = {};
 
-  // 🌟 두뇌별 클래스 데이터셋 정의
   const classesCoco = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
   const classesSafety = ['Hardhat', 'Mask', 'NO-Hardhat', 'NO-Mask', 'NO-Safety Vest', 'Person', 'Safety Cone', 'Safety Vest', 'machinery', 'vehicle'];
 
@@ -145,24 +149,22 @@
     }
   }
 
-  // 🌟 모드에 따라 알맞은 모델 파일을 서서히 로딩하는 지능형 함수
   async function loadSelectedBrain(mode) {
     loadingText.style.display = 'block';
     if (mode === 'coco') {
       if (!sessionCoco) {
-        loadingText.innerText = "🌐 일상생활 사물인식 뇌 깨우는 중...";
+        loadingText.innerText = "YOLO 고정밀 ONNX 안전 모델 로딩 중...";
         sessionCoco = await ort.InferenceSession.create('./yolov8n_coco.onnx', { executionProviders: ['webgl', 'wasm'] });
       }
     } else {
       if (!sessionSafety) {
-        loadingText.innerText = "🚧 건설안전 100회 정밀 뇌 깨우는 중...";
+        loadingText.innerText = "YOLO 고정밀 ONNX 안전 모델 로딩 중...";
         sessionSafety = await ort.InferenceSession.create('./yolov8n_safety.onnx', { executionProviders: ['webgl', 'wasm'] });
       }
     }
     loadingText.style.display = 'none';
   }
 
-  // 🌟 듀얼 브레인 실시간 스위칭 이벤트 함수
   async function switchBrain(mode) {
     if (currentBrain === mode || isChanging) return;
     isChanging = true;
@@ -174,7 +176,7 @@
     
     await loadSelectedBrain(mode);
     currentBrain = mode;
-    throttleLog("system_switch", `🔄 인공지능 모델이 [${mode === 'coco' ? '일상생활 모드' : '건설현장 모드'}]로 안전 전환되었습니다.`, "#ffcc00");
+    throttleLog("system_switch", `🔄 분석 모드가 [${mode === 'coco' ? '일상생활 모드' : '건설현장 모드'}]로 변경되었습니다.`, "#ffcc00");
     isChanging = false;
   }
 
@@ -185,7 +187,7 @@
     closeModal();
     welcomeScreen.style.display = 'none';
     appScreen.style.display = 'flex';
-    loadingText.innerText = "카메라 무선 동기화 중...";
+    loadingText.innerText = "카메라 연결 중...";
     logContainer.innerHTML = "";
     window.scrollTo(0, 0);
     
@@ -201,9 +203,10 @@
         video.width = video.videoWidth;
         video.height = video.videoHeight;
         
-        // 시작 모드 두뇌 선점 로딩
         await loadSelectedBrain(currentBrain);
+        loadingText.innerText = "YOLOv8 고속 추적 엔진 가동됨";
         
+        setTimeout(() => { loadingText.style.display = 'none'; }, 2000);
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
         detectFrame();
@@ -225,7 +228,6 @@
   }
 
   async function detectFrame() {
-    // 활성화된 뇌 인스턴스 선택 고정
     const activeSession = (currentBrain === 'coco') ? sessionCoco : sessionSafety;
     const activeClasses = (currentBrain === 'coco') ? classesCoco : classesSafety;
     const numClasses = activeClasses.length;
@@ -237,12 +239,11 @@
       });
 
       const inputTensor = new ort.Tensor('float32', onnxData, [1, 3, 640, 640]);
-      const feeds = { [activeSession.inputNames[0]]: inputTensor };
+      const feeds = { [sessionNames = activeSession.inputNames[0]]: inputTensor };
       const outputMap = await activeSession.run(feeds);
       const outputTensor = outputMap[activeSession.outputNames[0]];
 
       tf.tidy(() => {
-        // 🌟 두뇌 모드별로 4개 좌표 + 클래스 개수(80개 또는 10개)에 맞춰 수학적 디코딩 규격 가변화 적용
         const result = tf.tensor(outputTensor.data, [1, 4 + numClasses, 8400]);
         const resTransposed = result.transpose([0, 2, 1]); 
 
@@ -277,58 +278,51 @@
           let displayLabel = "";
           let boxColor = "#ffcc00";
 
-          // ----------------------------------------------------
-          // 🧠 분기 대리점 1: 일상생활 모드 (COCO) 동작 알고리즘
-          // ----------------------------------------------------
           if (currentBrain === 'coco') {
             const cocoTranslation = {
-              'person': { text: "작업자 포착", color: "#00FF00" },
-              'bicycle': { text: "자전거 (충돌 주의)", color: "#ffcc00" },
-              'car': { text: "차량 (교통위험 통제)", color: "#ff3300" },
-              'motorcycle': { text: "오토바이 (충돌 위험)", color: "#ff3300" },
-              'airplane': { text: "항공기 (접근 주의)", color: "#ffcc00" },
-              'bus': { text: "버스 (사각지대 경고)", color: "#ff3300" },
-              'train': { text: "열차 (선로 접근 차단)", color: "#ff3300" },
-              'truck': { text: "중장비/트럭 (협착 위험)", color: "#ff3300" },
-              'boat': { text: "선박 (충돌/추락 주의)", color: "#ffcc00" },
-              'traffic light': { text: "신호등 (신호 준수)", color: "#00FF00" },
+              'person': { text: "작업자 감지", color: "#00FF00" },
+              'bicycle': { text: "자전거 감지 (충돌 주의)", color: "#ffcc00" },
+              'car': { text: "차량 감지 (교통위험 통제)", color: "#ff3300" },
+              'motorcycle': { text: "오토바이 감지 (충돌 위험)", color: "#ff3300" },
+              'airplane': { text: "항공기 감지 (지정 구역)", color: "#ffcc00" },
+              'bus': { text: "버스 감지 (사각지대 경고)", color: "#ff3300" },
+              'train': { text: "열차 감지 (선로 접근 차단)", color: "#ff3300" },
+              'truck': { text: "중장비/트럭 (협착 치명 위험)", color: "#ff3300" },
+              'boat': { text: "선박 감지 (추락 주의)", color: "#ffcc00" },
+              'traffic light': { text: "신호등 (신호 미준수 주의)", color: "#00FF00" },
               'fire hydrant': { text: "소화전 (구역 점거 차단)", color: "#00FF00" },
               'stop sign': { text: "정지 표지판 (정지 준수)", color: "#ff3300" },
               'backpack': { text: "방치된 배낭 (장애물 요인)", color: "#00FF00" },
               'umbrella': { text: "우산 (시야 차단 주의)", color: "#00FF00" },
-              'suitcase': { text: "여행가방 (통행 방해)", color: "#00FF00" },
-              'bottle': { text: "병 (취급주의)", color: "#00FF00" },
-              'wine glass': { text: "유리잔 (취급주의)", color: "#00FF00" },
-              'cup': { text: "컵 감지 (취급주의)", color: "#00FF00" },
+              'suitcase': { text: "여행상자 (통행 방해)", color: "#00FF00" },
+              'bottle': { text: "병 발견 (투기/미끄러짐 위험)", color: "#00FF00" },
+              'wine glass': { text: "유리잔 (파손 베임 위험)", color: "#00FF00" },
+              'cup': { text: "컵 감지 (미끄러짐 주의)", color: "#00FF00" },
               'fork': { text: "포크 (취급주의)", color: "#00FF00" },
-              'knife': { text: "칼 (치명상 가능)", color: "#ff3300" },
-              'chair': { text: "방치된 의자 (전도 위험)", color: "#00FF00" },
+              'knife': { text: "칼 포착 (날카로운 도구 위험)", color: "#ff3300" },
+              'chair': { text: "방치된 의자 (전도 위험 요인)", color: "#00FF00" },
               'couch': { text: "소파 (대형 집기 적재)", color: "#00FF00" },
-              'potted plant': { text: "화분 (낙하 위험)", color: "#00FF00" },
+              'potted plant': { text: "화분 (낙하 위험 관리)", color: "#00FF00" },
               'tv': { text: "TV/모니터 (과열 주의)", color: "#00FF00" },
               'laptop': { text: "노트북 (전열 화재 관리)", color: "#00FF00" },
-              'cell phone': { text: "스마트폰 (보행 주의)", color: "#00FF00" },
+              'cell phone': { text: "스마트폰 사용 중 (보행 위험)", color: "#00FF00" },
               'microwave': { text: "전자레인지 (고온 화상 위험)", color: "#ff3300" },
               'oven': { text: "오븐 (고온 화재 치명 위험)", color: "#ff3300" },
               'toaster': { text: "토스터기 (누전 화재 주의)", color: "#ff3300" },
               'vase': { text: "꽃병 (파손 파편 주의)", color: "#ffcc00" },
-              'scissors': { text: "가위 (베임 위험)", color: "#ff3300" },
+              'scissors': { text: "가위 포착 (베임 사고 주의)", color: "#ff3300" },
               'hair drier': { text: "헤어드라이어 (감전 위험)", color: "#ff3300" },
-              // 사용자 편의: 지정을 패스한 '숨김' 키워드 가변 자동 매핑
               'parking meter':'숨김','bench':'숨김','bird':'숨김','cat':'숨김','dog':'숨김','horse':'숨김','sheep':'숨김','cow':'숨김','zebra':'숨김','giraffe':'숨김','handbag':'숨김','tie':'숨김','spoon':'숨김','bowl':'숨김','banana':'숨김','apple':'숨김','sandwich':'숨김','orange':'숨김','broccoli':'숨김','carrot':'숨김','hot dog':'숨김','pizza':'숨김','donut':'숨김','cake':'숨김','bed':'숨김','dining table':'숨김','toilet':'숨김','mouse':'숨김','remote':'숨김','keyboard':'숨김','sink':'숨김','refrigerator':'숨김','book':'숨김','clock':'숨김','teddy bear':'숨김','toothbrush':'숨김'
             };
 
             const matched = cocoTranslation[label];
-            if (matched === "숨김" || !matched) return; // 숨김은 드로잉 스킵
+            if (matched === "숨김" || !matched) return; 
 
             displayLabel = matched.text;
             boxColor = matched.color;
 
-            if (boxColor === "#ff3300") throttleLog(label, `⚠️ 일반위험 감지: [${displayLabel}] 구역 내 안전거리 확보`, "#ff3300");
+            if (boxColor === "#ff3300") throttleLog(label, `⚠️ 위험 요소 포착: [${displayLabel}]`, "#ff3300");
           } 
-          // ----------------------------------------------------
-          // 🧠 분기 대리점 2: 건설현장 모드 (SAFETY) 동작 알고리즘
-          // ----------------------------------------------------
           else {
             if (label === 'Hardhat') {
               displayLabel = "안전모 착용 확인"; boxColor = "#00FF00";
@@ -355,13 +349,9 @@
             } else if (label === 'vehicle') {
               displayLabel = "⚠️ 위험: 차량 접근중"; boxColor = "#ff3300";
               throttleLog("vehicle", "⚠️ 교통안전: 작업 구역 내 이동형 차량/덤프 트랙킹 확인", "#ff3300");
-            } else if (label === 'elephant' || label === 'bear') {
-              displayLabel = "곰 (피신 요망)"; boxColor = "#ff3300";
-              throttleLog("wild_animal", "🚨 긴급 상황: 주변 위험 동물 식별! 즉시 대피하십시오", "#ff3300");
             }
           }
 
-          // 드로잉 가이드 투명도 50% 반투명 고정
           ctx.globalAlpha = 0.5;
           ctx.strokeStyle = boxColor; 
           ctx.lineWidth = 3; 
@@ -382,6 +372,7 @@
     animationFrameId = requestAnimationFrame(detectFrame);
   }
 
+  // 🌟 이전 리소스 안전 반환 형태로 100% 원복된 종료 함수
   function stopApp() {
     if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
     if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
@@ -392,8 +383,9 @@
     loadingText.style.display = 'block';
     
     mainIcon.innerText = "✅";
-    welcomeTitle.innerText = "통합 안전 관제 해제됨";
-    welcomeDesc.innerHTML = "카메라 리소스 및 듀얼 브레인 WebGL 엔진이 완전히 초기화되었습니다.<br>(스마트폰 발열 방지 로직 적용 완료)";
+    welcomeTitle.innerText = "AI 분석 안전 종료됨";
+    welcomeDesc.innerHTML = "카메라 및 그래픽 하드웨어(WebGL) 리소스가 가뿐하게 반환되었습니다.<br>(스마트폰 발열 및 배터리 누수 완전 차단)";
+    actionButton.innerText = "다시 시작하기";
     welcomeScreen.style.display = 'flex';
   }
 
