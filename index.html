@@ -60,7 +60,6 @@
     <div class="icon-shield" id="main-icon">🛡️</div>
     <h2 class="main-title" id="welcome-title">멀티모드 AI CCTV</h2>
     <p class="sub-text" id="welcome-desc">아래 [시작하기] 버튼을 누르면 카메라가 활성화되며,<br>현장의 유해 위험 요인을 실시간으로 분석합니다.</p>
-    <p class="sub-text" style="font-size: 0.8rem; color: #666; margin-top: -30px;">(화재감시 모드는 대용량 모델 연산으로 인해 로딩에 약 5초 이상 소요될 수 있습니다)</p>
     <button class="btn btn-start" id="action-button" onclick="openModal()">시작하기</button>
   </div>
 
@@ -127,7 +126,7 @@
   let sessionFire = null; 
   let currentBrain = 'coco'; 
   let isChanging = false;
-  let isProcessing = false; // 🌟 핵심: 프레임 스킵용 비동기 동기화 락 가드 시스템
+  let isProcessing = false; 
   let localStream = null;
   let animationFrameId = null;
 
@@ -168,7 +167,6 @@
         }
       } else if (mode === 'fire') {
         if (!sessionFire) {
-          // 🌟 42MB 대용량 특성상 최초 구동 시 WebGL 셰이더 컴파일로 인해 3~5초의 지연이 발생할 수 있으므로 명시적 우회 결합
           try {
             sessionFire = await ort.InferenceSession.create('./yolov8n_fire.onnx', { executionProviders: ['webgl', 'wasm'] });
           } catch (e) {
@@ -254,7 +252,6 @@
   }
 
   async function detectFrame() {
-    // 🌟 락 가드: 이전 프레임 연산이 아직 처리 중이면 현재 루프를 즉시 스킵하여 프리징 완벽 차단!
     if (isProcessing || isChanging) {
       animationFrameId = requestAnimationFrame(detectFrame);
       return;
@@ -271,7 +268,7 @@
     }
 
     if (activeSession && video.readyState === video.HAVE_ENOUGH_DATA) {
-      isProcessing = true; // 연산 잠금 가동
+      isProcessing = true; 
 
       const [onnxData, w_width, h_height] = tf.tidy(() => {
         const img = tf.browser.fromPixels(video).resizeNearestNeighbor([640, 640]).toFloat().div(tf.scalar(255.0));
@@ -284,7 +281,6 @@
         const outputMap = await activeSession.run({ [activeSession.inputNames[0]]: inputTensor });
         const outputTensor = outputMap[activeSession.outputNames[0]];
 
-        // 🌟 초강력 혁신: 고정 차단을 깨부수는 가변 구조 디코더 가동 (모델 크기에 따른 행렬 완전 자동 튜닝)
         const dims = outputTensor.dims; 
         const outChannels = dims[1]; 
         const outAnchors = dims[2]; 
@@ -296,15 +292,30 @@
           const result = tf.tensor(outputTensor.data, [1, outChannels, outAnchors]);
           const resTransposed = result.transpose([0, 2, 1]); 
 
-          const boxes = tf.slice(resTransposed, [0, 0, 0], [-1, -1, 4]);
+          const rawBoxes = tf.slice(resTransposed, [0, 0, 0], [-1, -1, 4]).squeeze();
           const scores = tf.slice(resTransposed, [0, 0, 4], [-1, -1, -1]);
           
           const maxScores = scores.max(2).squeeze();
           const classes = scores.argMax(2).squeeze();
 
-          const nmsIndices = tf.image.nonMaxSuppression(boxes.squeeze(), maxScores, 15, 0.35, 0.50).arraySync();
+          // 🌟 보정 완료: 겹침 방지 NMS 엔진을 구동하기 전, 중심 좌표(cx,cy)를 사각형 좌상단/우하단(ymin, xmin..) 규격으로 완벽 교정
+          const cx = tf.slice(rawBoxes, [0, 0], [-1, 1]);
+          const cy = tf.slice(rawBoxes, [0, 1], [-1, 1]);
+          const w = tf.slice(rawBoxes, [0, 2], [-1, 1]);
+          const h = tf.slice(rawBoxes, [0, 3], [-1, 1]);
 
-          const boxesArray = boxes.squeeze().arraySync();
+          const xmin = cx.sub(w.div(2));
+          const ymin = cy.sub(h.div(2));
+          const xmax = cx.add(w.div(2));
+          const ymax = cy.add(h.div(2));
+
+          const nmsBoxes = tf.concat([ymin, xmin, ymax, xmax], 1);
+
+          // 🌟 화재 모드(42MB)일 때는 커트라인을 0.25로 극단적으로 낮추고, 일반 모드일 때는 0.45로 쾌적하게 가변 처리
+          let scoreLimit = (currentBrain === 'fire') ? 0.25 : 0.45;
+          const nmsIndices = tf.image.nonMaxSuppression(nmsBoxes, maxScores, 12, 0.45, scoreLimit).arraySync();
+
+          const boxesArray = rawBoxes.arraySync();
           const classesArray = classes.arraySync();
           const scoresArray = maxScores.arraySync();
 
@@ -315,8 +326,8 @@
 
             const x = (box[0] - box[2]/2) * (canvas.width / 640);
             const y = (box[1] - box[3]/2) * (canvas.height / 640);
-            const w = box[2] * (canvas.width / 640);
-            const h = box[3] * (canvas.height / 640);
+            const w_box = box[2] * (canvas.width / 640);
+            const h_box = box[3] * (canvas.height / 640);
 
             let displayLabel = ""; let boxColor = "#ffcc00";
 
@@ -331,7 +342,7 @@
                 'cell phone': { text: "스마트폰 사용 중 (보행 위험)", color: "#00FF00" }, 'backpack': { text: "방치된 배낭 (장애물 요인)", color: "#00FF00" },
                 'umbrella': { text: "우산 (시야 차단 주의)", color: "#00FF00" }, 'bottle': { text: "병 발견 (투기/미끄러짐 위험)", color: "#00FF00" },
                 'chair': { text: "방치된 의자 (전도 위험 요인)", color: "#00FF00" }, 'laptop': { text: "노트북 (전열 화재 관리)", color: "#00FF00" },
-                'parking meter':'숨김','bench':'숨김','bird':'숨김','cat':'숨김','dog':'숨김','horse':'숨김','sheep':'숨김','cow':'숨김','zebra':'숨김','giraffe':'숨김','handbag':'숨김','tie':'숨김','spoon':'숨김','bowl':'숨김','banana':'숨김','apple':'숨김','sandwich':'숨김','orange':'숨김','broccoli':'숨김','carrot':'숨김','hot dog':'숨김','pizza':'숨김','donut':'숨김','cake':'숨김','bed':'숨김','dining table':'숨김','toilet':'숨김','mouse':'숨김','remote':'숨김','keyboard':'숨김','sink':'숨김','refrigerator':'숨김','book':'숨김','clock':'숨김','teddy bear':'숨김','toothbrush':'숨김','airplane':'지정','boat':'지정','traffic light':'지정','fire hydrant':'지정','suitcase':'지정','wine glass':'지정','cup':'지정','fork':'지정','couch':'지정','potted plant':'지정','tv':'지정','microwave':'지정','oven':'지정','toaster':'지정','vase':'지정','hair drier':'지정'
+                'parking meter':'숨김','bench':'숨김','bird':'숨김','cat':'숨김','dog':'숨김','horse':'숨김','sheep':'숨김','cow':'숨김','zebra':'숨김','giraffe':'숨김','handbag':'숨김','tie':'숨김','spoon':'숨김','bowl':'숨김','banana':'숨김','apple':'sandwich':'숨김','orange':'숨김','broccoli':'숨김','carrot':'숨김','hot dog':'숨김','pizza':'숨김','donut':'숨김','cake':'숨김','bed':'숨김','dining table':'숨김','toilet':'숨김','mouse':'숨김','remote':'숨김','keyboard':'숨김','sink':'숨김','refrigerator':'숨김','book':'숨김','clock':'숨김','teddy bear':'숨김','toothbrush':'숨김','airplane':'지정','boat':'지정','traffic light':'지정','fire hydrant':'지정','suitcase':'지정','wine glass':'지정','cup':'지정','fork':'지정','couch':'지정','potted plant':'지정','tv':'지정','microwave':'지정','oven':'지정','toaster':'지정','vase':'지정','hair drier':'지정'
               };
               const matched = cocoTranslation[label];
               if (matched === "숨김" || !matched || matched === "지정") return;
@@ -351,7 +362,6 @@
               else if (label === 'machinery') { displayLabel = "⚙️ 건설기계/장비 작동중"; boxColor = "#ffcc00"; throttleLog("machine", "⚙️ 장비알림: 중장비 및 가설 설비 작동 구역 접근 주의", "#ffcc00"); }
               else if (label === 'vehicle') { displayLabel = "⚠️ 위험: 차량 접근중"; boxColor = "#ff3300"; throttleLog("vehicle", "⚠️ 교통안전: 작업 구역 내 이동형 차량/덤프 트랙킹 확인", "#ff3300"); }
             }
-            // 🌟 대용량 모델 안심 처리부: 이름 오타 버그를 파괴하기 위해 인덱스(0번, 1번) 추적 다이렉트 매핑
             else if (currentBrain === 'fire') {
               if (classIdx === 0) {
                 displayLabel = "🔥 대형위험: 화재 발생!!"; boxColor = "#ff3300";
@@ -362,7 +372,7 @@
               }
             }
 
-            ctx.globalAlpha = 0.5; ctx.strokeStyle = boxColor; ctx.lineWidth = 3; ctx.strokeRect(x, y, w, h);
+            ctx.globalAlpha = 0.5; ctx.strokeStyle = boxColor; ctx.lineWidth = 3; ctx.strokeRect(x, y, w_box, h_box);
             ctx.fillStyle = boxColor; ctx.font = "bold 15px Arial";
             const textStr = `${displayLabel} [${score}%]`; const textWidth = ctx.measureText(textStr).width;
             ctx.fillRect(x, y - 24, textWidth + 10, 24);
@@ -372,7 +382,7 @@
       } catch (err) {
         console.error("AI 추적 연산 에러 무시:", err);
       } finally {
-        isProcessing = false; // 연산 잠금 해제 (다음 프레임 수용 허가)
+        isProcessing = false; 
       }
     }
     animationFrameId = requestAnimationFrame(detectFrame);
