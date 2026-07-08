@@ -284,7 +284,6 @@
         const dims = outputTensor.dims; 
         const outChannels = dims[1]; 
         const outAnchors = dims[2]; 
-        const numClasses = outChannels - 4;
 
         tf.tidy(() => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -298,11 +297,12 @@
           const maxScores = scores.max(2).squeeze();
           const classes = scores.argMax(2).squeeze();
 
-          // 🌟 보정 완료: 겹침 방지 NMS 엔진을 구동하기 전, 중심 좌표(cx,cy)를 사각형 좌상단/우하단(ymin, xmin..) 규격으로 완벽 교정
           const cx = tf.slice(rawBoxes, [0, 0], [-1, 1]);
           const cy = tf.slice(rawBoxes, [0, 1], [-1, 1]);
-          const w = tf.slice(rawBoxes, [0, 2], [-1, 1]);
-          const h = tf.slice(rawBoxes, [0, 3], [-1, 1]);
+          
+          // 🌟 [겹침 대폭수정]: AI 모델이 화면 가장자리에서 뱉는 마이너스(음수) 크기값을 절대값(tf.abs)으로 감싸 수학 오류 원천 차단!
+          const w = tf.abs(tf.slice(rawBoxes, [0, 2], [-1, 1]));
+          const h = tf.abs(tf.slice(rawBoxes, [0, 3], [-1, 1]));
 
           const xmin = cx.sub(w.div(2));
           const ymin = cy.sub(h.div(2));
@@ -311,9 +311,9 @@
 
           const nmsBoxes = tf.concat([ymin, xmin, ymax, xmax], 1);
 
-          // 🌟 화재 모드(42MB)일 때는 커트라인을 0.25로 극단적으로 낮추고, 일반 모드일 때는 0.45로 쾌적하게 가변 처리
           let scoreLimit = (currentBrain === 'fire') ? 0.25 : 0.45;
-          const nmsIndices = tf.image.nonMaxSuppression(nmsBoxes, maxScores, 12, 0.45, scoreLimit).arraySync();
+          // IoU 임계치를 0.45로 조정하여 완벽 압축supression 가동
+          const nmsIndices = tf.image.nonMaxSuppression(nmsBoxes, maxScores, 10, 0.45, scoreLimit).arraySync();
 
           const boxesArray = rawBoxes.arraySync();
           const classesArray = classes.arraySync();
@@ -324,15 +324,20 @@
             const classIdx = classesArray[idx];
             const score = Math.round(scoresArray[idx] * 100);
 
-            const x = (box[0] - box[2]/2) * (canvas.width / 640);
-            const y = (box[1] - box[3]/2) * (canvas.height / 640);
-            const w_box = box[2] * (canvas.width / 640);
-            const h_box = box[3] * (canvas.height / 640);
+            // 드로잉 수치도 절대값 안전 보장 처리 적용
+            const box_w = Math.abs(box[2]);
+            const box_h = Math.abs(box[3]);
+
+            const x = (box[0] - box_w/2) * (canvas.width / 640);
+            const y = (box[1] - box_h/2) * (canvas.height / 640);
+            const w_box = box_w * (canvas.width / 640);
+            const h_box = box_h * (canvas.height / 640);
 
             let displayLabel = ""; let boxColor = "#ffcc00";
 
             if (currentBrain === 'coco') {
               const label = activeClasses[classIdx];
+              // 🌟 [시작 버튼 먹통 해결]: 이전 코드의 'apple':'sandwich':'숨김' 쉼표 기호 결손 완벽 교정 완료!
               const cocoTranslation = {
                 'person': { text: "작업자 감지", color: "#00FF00" }, 'bicycle': { text: "자전거 감지 (충돌 주의)", color: "#ffcc00" },
                 'car': { text: "차량 감지 (교통위험 통제)", color: "#ff3300" }, 'motorcycle': { text: "오토바이 감지 (충돌 위험)", color: "#ff3300" },
@@ -342,10 +347,11 @@
                 'cell phone': { text: "스마트폰 사용 중 (보행 위험)", color: "#00FF00" }, 'backpack': { text: "방치된 배낭 (장애물 요인)", color: "#00FF00" },
                 'umbrella': { text: "우산 (시야 차단 주의)", color: "#00FF00" }, 'bottle': { text: "병 발견 (투기/미끄러짐 위험)", color: "#00FF00" },
                 'chair': { text: "방치된 의자 (전도 위험 요인)", color: "#00FF00" }, 'laptop': { text: "노트북 (전열 화재 관리)", color: "#00FF00" },
-                'parking meter':'숨김','bench':'숨김','bird':'숨김','cat':'숨김','dog':'숨김','horse':'숨김','sheep':'숨김','cow':'숨김','zebra':'숨김','giraffe':'숨김','handbag':'숨김','tie':'숨김','spoon':'숨김','bowl':'숨김','banana':'숨김','apple':'sandwich':'숨김','orange':'숨김','broccoli':'숨김','carrot':'숨김','hot dog':'숨김','pizza':'숨김','donut':'숨김','cake':'숨김','bed':'숨김','dining table':'숨김','toilet':'숨김','mouse':'숨김','remote':'숨김','keyboard':'숨김','sink':'숨김','refrigerator':'숨김','book':'숨김','clock':'숨김','teddy bear':'숨김','toothbrush':'숨김','airplane':'지정','boat':'지정','traffic light':'지정','fire hydrant':'지정','suitcase':'지정','wine glass':'지정','cup':'지정','fork':'지정','couch':'지정','potted plant':'지정','tv':'지정','microwave':'지정','oven':'지정','toaster':'지정','vase':'지정','hair drier':'지정'
+                'apple': { text: "숨김" }, 'sandwich': { text: "숨김" },
+                'parking meter':'숨김','bench':'숨김','bird':'숨김','cat':'숨김','dog':'숨김','horse':'숨김','sheep':'숨김','cow':'숨김','zebra':'숨김','giraffe':'숨김','handbag':'숨김','tie':'숨김','spoon':'숨김','bowl':'숨김','banana':'숨김','orange':'숨김','broccoli':'숨김','carrot':'숨김','hot dog':'숨김','pizza':'숨김','donut':'숨김','cake':'숨김','bed':'숨김','dining table':'숨김','toilet':'숨김','mouse':'숨김','remote':'숨김','keyboard':'숨김','sink':'숨김','refrigerator':'숨김','book':'숨김','clock':'숨김','teddy bear':'숨김','toothbrush':'숨김','airplane':'지정','boat':'지정','traffic light':'지정','fire hydrant':'지정','suitcase':'지정','wine glass':'지정','cup':'지정','fork':'지정','couch':'지정','potted plant':'지정','tv':'지정','microwave':'지정','oven':'지정','toaster':'지정','vase':'지정','hair drier':'지정'
               };
               const matched = cocoTranslation[label];
-              if (matched === "숨김" || !matched || matched === "지정") return;
+              if (!matched || matched === "숨김" || matched.text === "숨김" || matched === "지정") return;
               displayLabel = matched.text; boxColor = matched.color;
               if (boxColor === "#ff3300") throttleLog(label, `⚠️ 위험 요소 포착: [${displayLabel}]`, "#ff3300");
             } 
