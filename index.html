@@ -4,35 +4,45 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>멀티모드 AI CCTV</title>
+  
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  
   <style>
     body { margin: 0; font-family: -apple-system, sans-serif; background: #111; color: white; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; }
     .btn { border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.2s, transform 0.1s; }
     .btn:active { transform: scale(0.98); }
+    
     #welcome-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px; box-sizing: border-box; background: #111; color: #ffffff; z-index: 250; }
     .icon-shield { font-size: 5rem; margin-bottom: 20px; animation: pulse 2s infinite; }
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     .main-title { font-size: 1.6rem; color: #ffcc00; margin: 0 0 15px 0; }
     .sub-text { color: #aaa; font-size: 0.95rem; line-height: 1.6; margin-bottom: 40px; }
     .btn-start { padding: 16px 50px; background: #ffcc00; color: #000; font-size: 1.2rem; border-radius: 30px; box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3); }
+    
     #app-screen { display: none; flex-direction: column; align-items: center; width: 100vw; padding-top: 130px; padding-bottom: 40px; box-sizing: border-box; }
+    
     #header-bar { position: fixed; top: 15px; z-index: 150; width: 95vw; max-width: 500px; display: flex; flex-direction: column; gap: 8px; background: rgba(0, 0, 0, 0.85); padding: 10px 15px; border-radius: 20px; border: 1px solid #ffcc00; box-sizing: border-box; backdrop-filter: blur(5px); }
     .header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
     #header-bar h1 { font-size: 1.1rem; margin: 0; color: #fff; font-weight: bold; }
     .btn-exit { background: #ff3300; color: white; padding: 6px 14px; border-radius: 15px; font-size: 0.85rem; }
+    
     .toggle-container { display: flex; width: 100%; background: #222; border-radius: 10px; padding: 3px; box-sizing: border-box; border: 1px solid #444; gap: 4px; }
     .toggle-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 0.75rem; font-weight: bold; color: #888; border-radius: 7px; transition: all 0.2s; cursor: pointer; }
     .toggle-btn.active { background: #ffcc00; color: #000; box-shadow: 0 2px 8px rgba(255,204,0,0.3); }
+    
     #video-container { position: relative; width: 100vw; height: 70vh; max-height: 70vh; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
     video { width: 100%; height: 100%; object-fit: contain; background: #000; }
     canvas { position: absolute; pointer-events: none; }
+    
     #loading { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); font-size: 0.9rem; color: #bbbbbb; background: rgba(0,0,0,0.75); padding: 6px 18px; border-radius: 20px; z-index: 160; pointer-events: none; border: 1px solid #444; }
+    
     #log-panel { width: 95vw; max-width: 500px; height: 250px; min-height: 250px; background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px; margin-top: 20px; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
     #log-header { font-size: 0.85rem; font-weight: bold; color: #ffcc00; margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 6px; display: flex; justify-content: space-between; }
     #log-container { flex: 1; overflow-y: auto; font-family: monospace; font-size: 0.78rem; line-height: 1.5; }
     .log-item { margin-bottom: 4px; animation: slideDown 0.2s ease-out; border-left: 3px solid; padding-left: 6px; }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
     #confirm-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; align-items: center; justify-content: center; z-index: 300; }
     .modal-box { background: #222; padding: 30px; border-radius: 16px; text-align: center; max-width: 85%; width: 340px; border: 1px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     .modal-icon { font-size: 3rem; margin-bottom: 15px; color: #ffcc00; }
@@ -45,12 +55,14 @@
   </style>
 </head>
 <body>
+
   <div id="welcome-screen">
     <div class="icon-shield" id="main-icon">🛡️</div>
     <h2 class="main-title" id="welcome-title">멀티모드 AI CCTV</h2>
     <p class="sub-text" id="welcome-desc">아래 [시작하기] 버튼을 누르면 카메라가 활성화되며,<br>현장의 유해 위험 요인을 실시간으로 분석합니다.</p>
     <button class="btn btn-start" id="action-button" onclick="openModal()">시작하기</button>
   </div>
+
   <div id="app-screen">
     <div id="header-bar">
       <div class="header-top">
@@ -58,15 +70,17 @@
         <button class="btn btn-exit" onclick="stopApp()">종료</button>
       </div>
       <div class="toggle-container">
-        <div id="mode-coco" class="toggle-btn active" onclick="switchBrain('coco')">🌐 일상생활(High)</div>
+        <div id="mode-coco" class="toggle-btn active" onclick="switchBrain('coco')">🌐 일상생활</div>
         <div id="mode-safety" class="toggle-btn" onclick="switchBrain('safety')">🚧 건설현장</div>
         <div id="mode-fire" class="toggle-btn" onclick="switchBrain('fire')">🔥 화재감시</div>
       </div>
     </div>
+    
     <div id="video-container">
       <video id="webcam" autoplay playsinline muted></video>
       <canvas id="overlay"></canvas>
     </div>
+
     <div id="log-panel">
       <div id="log-header">
         <span>📋 안전 모니터링 실시간 위험 로그</span>
@@ -74,8 +88,10 @@
       </div>
       <div id="log-container"></div>
     </div>
+    
     <div id="loading">시스템 초기화 중...</div>
   </div>
+
   <div id="confirm-modal">
     <div class="modal-box">
       <div class="modal-icon">⚠️</div>
@@ -90,6 +106,7 @@
       </div>
     </div>
   </div>
+
 <script>
   const welcomeScreen = document.getElementById('welcome-screen');
   const appScreen = document.getElementById('app-screen');
@@ -112,6 +129,7 @@
   let isProcessing = false; 
   let localStream = null;
   let animationFrameId = null;
+
   const lastLogTimes = {};
 
   const classesCoco = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
@@ -128,6 +146,7 @@
       logItem.style.color = color;
       logItem.style.borderLeftColor = color;
       logItem.innerHTML = `<span style="color: #777; margin-right: 5px;">[${timeStr}]</span>${message}`;
+      
       logContainer.insertBefore(logItem, logContainer.firstChild);
       if (logContainer.children.length > 35) logContainer.removeChild(logContainer.lastChild);
     }
@@ -136,6 +155,7 @@
   async function loadSelectedBrain(mode) {
     loadingText.style.display = 'block';
     loadingText.innerText = "YOLO 고정밀 ONNX 안전 모델 로딩 중...";
+
     try {
       if (mode === 'coco') {
         if (!sessionCoco) {
@@ -150,13 +170,14 @@
           try {
             sessionFire = await ort.InferenceSession.create('./yolov8n_fire.onnx', { executionProviders: ['webgl', 'wasm'] });
           } catch (e) {
+            console.log("화재 모델 WebGL 가속 실패, WASM 연산으로 전환 우회합니다.");
             sessionFire = await ort.InferenceSession.create('./yolov8n_fire.onnx', { executionProviders: ['wasm'] });
           }
         }
       }
     } catch (e) {
       console.error(e);
-      alert(`⚠️ [모델 로드 실패]\n'yolov8n_${mode}.onnx' 파일의 파일명과 깃허브 업로드 상태를 점검해 주세요.`);
+      alert(`⚠️ [모델 로드 실패]\n'yolov8n_${mode}.onnx' 파일을 읽을 수 없습니다. 파일 확장자명 및 깃허브 업로드 상태를 점검해 주세요.`);
       goToWelcomeScreen();
       loadingText.style.display = 'none';
       return;
@@ -168,12 +189,15 @@
     if (currentBrain === mode || isChanging) return;
     isChanging = true;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
     document.getElementById('mode-coco').classList.remove('active');
     document.getElementById('mode-safety').classList.remove('active');
     document.getElementById('mode-fire').classList.remove('active');
     document.getElementById(`mode-${mode}`).classList.add('active');
+    
     await loadSelectedBrain(mode);
     currentBrain = mode;
+    
     let modeKor = mode === 'coco' ? '일상생활 모드' : mode === 'safety' ? '건설현장 모드' : '화재감시 모드';
     throttleLog("system_switch", `🔄 분석 모드가 [${modeKor}]로 변경되었습니다.`, "#ffcc00");
     isChanging = false;
@@ -190,14 +214,21 @@
     logContainer.innerHTML = "";
     isProcessing = false;
     window.scrollTo(0, 0);
+    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false
+      });
       localStream = stream;
       video.srcObject = stream;
+      
       video.onloadedmetadata = async () => {
         video.width = video.videoWidth;
         video.height = video.videoHeight;
+        
         await loadSelectedBrain(currentBrain);
+        
         loadingText.innerText = "YOLOv8 고속 추적 엔진 가동됨";
         setTimeout(() => { loadingText.style.display = 'none'; }, 2000);
         window.addEventListener('resize', resizeCanvas);
@@ -212,51 +243,92 @@
 
   function resizeCanvas() {
     const rect = video.getBoundingClientRect();
-    canvas.style.width = rect.width + 'px'; canvas.style.height = rect.height + 'px';
-    canvas.style.top = video.offsetTop + 'px'; canvas.style.left = video.offsetLeft + 'px';
-    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    canvas.style.top = video.offsetTop + 'px';
+    canvas.style.left = video.offsetLeft + 'px';
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
   }
 
   async function detectFrame() {
-    if (isProcessing || isChanging) { animationFrameId = requestAnimationFrame(detectFrame); return; }
-    let activeSession = sessionCoco; let activeClasses = classesCoco;
-    if (currentBrain === 'safety') { activeSession = sessionSafety; activeClasses = classesSafety; }
-    else if (currentBrain === 'fire') { activeSession = sessionFire; }
+    if (isProcessing || isChanging) {
+      animationFrameId = requestAnimationFrame(detectFrame);
+      return;
+    }
+
+    let activeSession = sessionCoco;
+    let activeClasses = classesCoco;
+    
+    if (currentBrain === 'safety') {
+      activeSession = sessionSafety;
+      activeClasses = classesSafety;
+    } else if (currentBrain === 'fire') {
+      activeSession = sessionFire;
+    }
 
     if (activeSession && video.readyState === video.HAVE_ENOUGH_DATA) {
-      isProcessing = true;
+      isProcessing = true; 
+
       const [onnxData, w_width, h_height] = tf.tidy(() => {
         const img = tf.browser.fromPixels(video).resizeNearestNeighbor([640, 640]).toFloat().div(tf.scalar(255.0));
         return [img.transpose([2, 0, 1]).dataSync(), video.videoWidth, video.videoHeight];
       });
+
       const inputTensor = new ort.Tensor('float32', onnxData, [1, 3, 640, 640]);
+      
       try {
         const outputMap = await activeSession.run({ [activeSession.inputNames[0]]: inputTensor });
         const outputTensor = outputMap[activeSession.outputNames[0]];
-        const dims = outputTensor.dims; const outChannels = dims[1]; const outAnchors = dims[2];
+
+        const dims = outputTensor.dims; 
+        const outChannels = dims[1]; 
+        const outAnchors = dims[2]; 
 
         tf.tidy(() => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
+
           const result = tf.tensor(outputTensor.data, [1, outChannels, outAnchors]);
-          const resTransposed = result.transpose([0, 2, 1]);
+          const resTransposed = result.transpose([0, 2, 1]); 
+
           const rawBoxes = tf.slice(resTransposed, [0, 0, 0], [-1, -1, 4]).squeeze();
           const scores = tf.slice(resTransposed, [0, 0, 4], [-1, -1, -1]);
-          const maxScores = scores.max(2).squeeze(); const classes = scores.argMax(2).squeeze();
+          
+          const maxScores = scores.max(2).squeeze();
+          const classes = scores.argMax(2).squeeze();
 
-          const cx = tf.slice(rawBoxes, [0, 0], [-1, 1]); const cy = tf.slice(rawBoxes, [0, 1], [-1, 1]);
-          const w = tf.abs(tf.slice(rawBoxes, [0, 2], [-1, 1])); const h = tf.abs(tf.slice(rawBoxes, [0, 3], [-1, 1]));
-          const xmin = cx.sub(w.div(2)); const ymin = cy.sub(h.div(2)); const xmax = cx.add(w.div(2)); const ymax = cy.add(h.div(2));
+          const cx = tf.slice(rawBoxes, [0, 0], [-1, 1]);
+          const cy = tf.slice(rawBoxes, [0, 1], [-1, 1]);
+          
+          const w = tf.abs(tf.slice(rawBoxes, [0, 2], [-1, 1]));
+          const h = tf.abs(tf.slice(rawBoxes, [0, 3], [-1, 1]));
+
+          const xmin = cx.sub(w.div(2));
+          const ymin = cy.sub(h.div(2));
+          const xmax = cx.add(w.div(2));
+          const ymax = cy.add(h.div(2));
+
           const nmsBoxes = tf.concat([ymin, xmin, ymax, xmax], 1);
 
           let scoreLimit = (currentBrain === 'fire') ? 0.25 : 0.45;
           const nmsIndices = tf.image.nonMaxSuppression(nmsBoxes, maxScores, 10, 0.45, scoreLimit).arraySync();
-          const boxesArray = rawBoxes.arraySync(); const classesArray = classes.arraySync(); const scoresArray = maxScores.arraySync();
+
+          const boxesArray = rawBoxes.arraySync();
+          const classesArray = classes.arraySync();
+          const scoresArray = maxScores.arraySync();
 
           nmsIndices.forEach(idx => {
-            const box = boxesArray[idx]; const classIdx = classesArray[idx]; const score = Math.round(scoresArray[idx] * 100);
-            const box_w = Math.abs(box[2]); const box_h = Math.abs(box[3]);
-            const x = (box[0] - box_w/2) * (canvas.width / 640); const y = (box[1] - box_h/2) * (canvas.height / 640);
-            const w_box = box_w * (canvas.width / 640); const h_box = box_h * (canvas.height / 640);
+            const box = boxesArray[idx];
+            const classIdx = classesArray[idx];
+            const score = Math.round(scoresArray[idx] * 100);
+
+            const box_w = Math.abs(box[2]);
+            const box_h = Math.abs(box[3]);
+
+            const x = (box[0] - box_w/2) * (canvas.width / 640);
+            const y = (box[1] - box_h/2) * (canvas.height / 640);
+            const w_box = box_w * (canvas.width / 640);
+            const h_box = box_h * (canvas.height / 640);
 
             let displayLabel = ""; let boxColor = "#ffcc00";
 
@@ -292,10 +364,17 @@
               else if (label === 'machinery') { displayLabel = "⚙️ 건설기계/장비 작동중"; boxColor = "#ffcc00"; throttleLog("machine", "⚙️ 장비알림: 중장비 및 가설 설비 작동 구역 접근 주의", "#ffcc00"); }
               else if (label === 'vehicle') { displayLabel = "⚠️ 위험: 차량 접근중"; boxColor = "#ff3300"; throttleLog("vehicle", "⚠️ 교통안전: 작업 구역 내 이동형 차량/덤프 트랙킹 확인", "#ff3300"); }
             }
+            // 🌟 [초경량 나노 규격 동기화 완료]: 0번 연기(Smoke), 1번 불꽃(Fire) 표준 정렬 인덱스 완전 변환 매핑
             else if (currentBrain === 'fire') {
-              if (classIdx === 1) { displayLabel = "🔥 대형위험: 화재 발생!!"; boxColor = "#ff3300"; throttleLog("fire_alert", "🚨🚨 [긴급 화재재난] 구역 내 불꽃 및 발화 요인 감지! 즉시 대피 유도", "#ff3300"); }
-              else if (classIdx === 0) { displayLabel = "💨 경고: 연기 포착!!"; boxColor = "#ffcc00"; throttleLog("smoke_alert", "⚠️ [발화 전조현황] 구역 내 미세 연기 및 연소 가스 트랙킹 발생", "#ffcc00"); }
+              if (classIdx === 1) {
+                displayLabel = "🔥 대형위험: 화재 발생!!"; boxColor = "#ff3300";
+                throttleLog("fire_alert", "🚨🚨 [긴급 화재재난] 구역 내 불꽃 및 발화 요인 감지! 즉시 대피 유도", "#ff3300");
+              } else if (classIdx === 0) {
+                displayLabel = "💨 경고: 연기 포착!!"; boxColor = "#ffcc00";
+                throttleLog("smoke_alert", "⚠️ [발화 전조현황] 구역 내 미세 연기 및 연소 가스 트랙킹 발생", "#ffcc00");
+              }
             }
+
             ctx.globalAlpha = 0.5; ctx.strokeStyle = boxColor; ctx.lineWidth = 3; ctx.strokeRect(x, y, w_box, h_box);
             ctx.fillStyle = boxColor; ctx.font = "bold 15px Arial";
             const textStr = `${displayLabel} [${score}%]`; const textWidth = ctx.measureText(textStr).width;
@@ -303,7 +382,11 @@
             ctx.globalAlpha = 1.0; ctx.fillStyle = "#000000"; ctx.fillText(textStr, x + 5, y - 7);
           });
         });
-      } catch (err) { console.error("AI 추적 연산 에러 무시:", err); } finally { isProcessing = false; }
+      } catch (err) {
+        console.error("AI 추적 연산 에러 무시:", err);
+      } finally {
+        isProcessing = false; 
+      }
     }
     animationFrameId = requestAnimationFrame(detectFrame);
   }
@@ -311,12 +394,23 @@
   function stopApp() {
     if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
     if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
-    video.srcObject = null; window.removeEventListener('resize', resizeCanvas); ctx.clearRect(0, 0, canvas.width, canvas.height);
-    appScreen.style.display = 'none'; loadingText.style.display = 'none'; isProcessing = false; window.scrollTo(0, 0); 
-    mainIcon.innerText = "✅"; welcomeTitle.innerText = "CCTV 안전 종료됨";
+    video.srcObject = null;
+    window.removeEventListener('resize', resizeCanvas);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    appScreen.style.display = 'none';
+    loadingText.style.display = 'none';
+    isProcessing = false;
+    window.scrollTo(0, 0); 
+    
+    mainIcon.innerText = "✅";
+    welcomeTitle.innerText = "CCTV 안전 종료됨";
     welcomeDesc.innerHTML = "사용 중이던 카메라 및 그래픽 하드웨어(WebGL) 리소스를 안전하게 반환하였습니다. (스마트폰 발열 및 배터리 누수 완전 차단)";
-    actionButton.innerText = "다시 시작하기"; welcomeScreen.style.display = 'flex'; 
+    actionButton.innerText = "다시 시작하기";
+    
+    welcomeScreen.style.display = 'flex'; 
   }
+
   function goToWelcomeScreen() { appScreen.style.display = 'none'; welcomeScreen.style.display = 'flex'; }
 </script>
 </body>
