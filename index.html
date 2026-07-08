@@ -60,6 +60,7 @@
     <div class="icon-shield" id="main-icon">🛡️</div>
     <h2 class="main-title" id="welcome-title">멀티모드 AI CCTV</h2>
     <p class="sub-text" id="welcome-desc">아래 [시작하기] 버튼을 누르면 카메라가 활성화되며,<br>현장의 유해 위험 요인을 실시간으로 분석합니다.</p>
+    <p class="sub-text" style="font-size: 0.8rem; color: #666; margin-top: -30px;">(화재감시 모드는 대용량 모델 연산으로 인해 로딩에 약 5초 이상 소요될 수 있습니다)</p>
     <button class="btn btn-start" id="action-button" onclick="openModal()">시작하기</button>
   </div>
 
@@ -126,6 +127,7 @@
   let sessionFire = null; 
   let currentBrain = 'coco'; 
   let isChanging = false;
+  let isProcessing = false; // 🌟 핵심: 프레임 스킵용 비동기 동기화 락 가드 시스템
   let localStream = null;
   let animationFrameId = null;
 
@@ -133,7 +135,6 @@
 
   const classesCoco = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
   const classesSafety = ['Hardhat', 'Mask', 'NO-Hardhat', 'NO-Mask', 'NO-Safety Vest', 'Person', 'Safety Cone', 'Safety Vest', 'machinery', 'vehicle'];
-  const classesFire = ['fire', 'smoke']; 
 
   function throttleLog(key, message, color) {
     const now = Date.now();
@@ -167,17 +168,18 @@
         }
       } else if (mode === 'fire') {
         if (!sessionFire) {
+          // 🌟 42MB 대용량 특성상 최초 구동 시 WebGL 셰이더 컴파일로 인해 3~5초의 지연이 발생할 수 있으므로 명시적 우회 결합
           try {
             sessionFire = await ort.InferenceSession.create('./yolov8n_fire.onnx', { executionProviders: ['webgl', 'wasm'] });
           } catch (e) {
-            console.log("화재 모델 WebGL 가속 실패, WASM 우회 구동합니다.");
+            console.log("화재 모델 WebGL 가속 실패, WASM 연산으로 전환 우회합니다.");
             sessionFire = await ort.InferenceSession.create('./yolov8n_fire.onnx', { executionProviders: ['wasm'] });
           }
         }
       }
     } catch (e) {
       console.error(e);
-      alert(`⚠️ [모델 로드 실패]\n'yolov8n_${mode}.onnx' 파일을 읽을 수 없습니다. 깃허브 저장소 업로드 상태나 파일명을 확인해 주세요.`);
+      alert(`⚠️ [모델 로드 실패]\n'yolov8n_${mode}.onnx' 파일을 읽을 수 없습니다. 파일 확장자명 및 깃허브 업로드 상태를 점검해 주세요.`);
       goToWelcomeScreen();
       loadingText.style.display = 'none';
       return;
@@ -212,6 +214,7 @@
     appScreen.style.display = 'flex';
     loadingText.innerText = "카메라 연결 중...";
     logContainer.innerHTML = "";
+    isProcessing = false;
     window.scrollTo(0, 0);
     
     try {
@@ -251,6 +254,12 @@
   }
 
   async function detectFrame() {
+    // 🌟 락 가드: 이전 프레임 연산이 아직 처리 중이면 현재 루프를 즉시 스킵하여 프리징 완벽 차단!
+    if (isProcessing || isChanging) {
+      animationFrameId = requestAnimationFrame(detectFrame);
+      return;
+    }
+
     let activeSession = sessionCoco;
     let activeClasses = classesCoco;
     
@@ -259,12 +268,11 @@
       activeClasses = classesSafety;
     } else if (currentBrain === 'fire') {
       activeSession = sessionFire;
-      activeClasses = classesFire;
     }
-    
-    const numClasses = activeClasses.length;
 
-    if (activeSession && !isChanging && video.readyState === video.HAVE_ENOUGH_DATA) {
+    if (activeSession && video.readyState === video.HAVE_ENOUGH_DATA) {
+      isProcessing = true; // 연산 잠금 가동
+
       const [onnxData, w_width, h_height] = tf.tidy(() => {
         const img = tf.browser.fromPixels(video).resizeNearestNeighbor([640, 640]).toFloat().div(tf.scalar(255.0));
         return [img.transpose([2, 0, 1]).dataSync(), video.videoWidth, video.videoHeight];
@@ -276,11 +284,16 @@
         const outputMap = await activeSession.run({ [activeSession.inputNames[0]]: inputTensor });
         const outputTensor = outputMap[activeSession.outputNames[0]];
 
+        // 🌟 초강력 혁신: 고정 차단을 깨부수는 가변 구조 디코더 가동 (모델 크기에 따른 행렬 완전 자동 튜닝)
+        const dims = outputTensor.dims; 
+        const outChannels = dims[1]; 
+        const outAnchors = dims[2]; 
+        const numClasses = outChannels - 4;
+
         tf.tidy(() => {
-          // 🌟 [잔상 버그 완전 해결] 새 박스를 그리기 직전에 캔버스를 칼같이 초기화합니다!
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          const result = tf.tensor(outputTensor.data, [1, 4 + numClasses, 8400]);
+          const result = tf.tensor(outputTensor.data, [1, outChannels, outAnchors]);
           const resTransposed = result.transpose([0, 2, 1]); 
 
           const boxes = tf.slice(resTransposed, [0, 0, 0], [-1, -1, 4]);
@@ -299,7 +312,6 @@
             const box = boxesArray[idx];
             const classIdx = classesArray[idx];
             const score = Math.round(scoresArray[idx] * 100);
-            const label = activeClasses[classIdx];
 
             const x = (box[0] - box[2]/2) * (canvas.width / 640);
             const y = (box[1] - box[3]/2) * (canvas.height / 640);
@@ -309,6 +321,7 @@
             let displayLabel = ""; let boxColor = "#ffcc00";
 
             if (currentBrain === 'coco') {
+              const label = activeClasses[classIdx];
               const cocoTranslation = {
                 'person': { text: "작업자 감지", color: "#00FF00" }, 'bicycle': { text: "자전거 감지 (충돌 주의)", color: "#ffcc00" },
                 'car': { text: "차량 감지 (교통위험 통제)", color: "#ff3300" }, 'motorcycle': { text: "오토바이 감지 (충돌 위험)", color: "#ff3300" },
@@ -326,6 +339,7 @@
               if (boxColor === "#ff3300") throttleLog(label, `⚠️ 위험 요소 포착: [${displayLabel}]`, "#ff3300");
             } 
             else if (currentBrain === 'safety') {
+              const label = activeClasses[classIdx];
               if (label === 'Hardhat') { displayLabel = "안전모 착용 확인"; boxColor = "#00FF00"; }
               else if (label === 'NO-Hardhat') { displayLabel = "🚨 위험: 안전모 미착용!!!"; boxColor = "#ff3300"; throttleLog("no_hardhat", "🚨 중대위험: 현장 내 안전모 미착용 작업자 적발! 즉시 조치 요망", "#ff3300"); }
               else if (label === 'Safety Vest') { displayLabel = "안전조끼 착용 확인"; boxColor = "#00FF00"; }
@@ -337,12 +351,12 @@
               else if (label === 'machinery') { displayLabel = "⚙️ 건설기계/장비 작동중"; boxColor = "#ffcc00"; throttleLog("machine", "⚙️ 장비알림: 중장비 및 가설 설비 작동 구역 접근 주의", "#ffcc00"); }
               else if (label === 'vehicle') { displayLabel = "⚠️ 위험: 차량 접근중"; boxColor = "#ff3300"; throttleLog("vehicle", "⚠️ 교통안전: 작업 구역 내 이동형 차량/덤프 트랙킹 확인", "#ff3300"); }
             }
+            // 🌟 대용량 모델 안심 처리부: 이름 오타 버그를 파괴하기 위해 인덱스(0번, 1번) 추적 다이렉트 매핑
             else if (currentBrain === 'fire') {
-              const labelLower = label.toLowerCase();
-              if (labelLower.includes('fire') || labelLower.includes('flame')) {
+              if (classIdx === 0) {
                 displayLabel = "🔥 대형위험: 화재 발생!!"; boxColor = "#ff3300";
                 throttleLog("fire_alert", "🚨🚨 [긴급 화재재난] 구역 내 불꽃 및 발화 요인 감지! 즉시 대피 유도", "#ff3300");
-              } else if (labelLower.includes('smoke')) {
+              } else {
                 displayLabel = "💨 경고: 연기 포착!!"; boxColor = "#ffcc00";
                 throttleLog("smoke_alert", "⚠️ [발화 전조현황] 구역 내 미세 연기 및 연소 가스 트랙킹 발생", "#ffcc00");
               }
@@ -357,6 +371,8 @@
         });
       } catch (err) {
         console.error("AI 추적 연산 에러 무시:", err);
+      } finally {
+        isProcessing = false; // 연산 잠금 해제 (다음 프레임 수용 허가)
       }
     }
     animationFrameId = requestAnimationFrame(detectFrame);
@@ -371,6 +387,7 @@
     
     appScreen.style.display = 'none';
     loadingText.style.display = 'none';
+    isProcessing = false;
     window.scrollTo(0, 0); 
     
     mainIcon.innerText = "✅";
