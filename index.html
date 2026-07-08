@@ -58,7 +58,7 @@
         <button class="btn btn-exit" onclick="stopApp()">종료</button>
       </div>
       <div class="toggle-container">
-        <div id="mode-coco" class="toggle-btn active" onclick="switchBrain('coco')">🌐 일상생활(World)</div>
+        <div id="mode-coco" class="toggle-btn active" onclick="switchBrain('coco')">🌐 맞춤형(World)</div>
         <div id="mode-safety" class="toggle-btn" onclick="switchBrain('safety')">🚧 건설현장</div>
         <div id="mode-fire" class="toggle-btn" onclick="switchBrain('fire')">🔥 화재감시</div>
       </div>
@@ -114,36 +114,44 @@
   let animationFrameId = null;
   const lastLogTimes = {};
 
-  const classesCoco = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'backpack', 'umbrella', 'suitcase', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'chair', 'couch', 'potted plant', 'tv', 'laptop', 'cell phone', 'microwave', 'oven', 'toaster', 'vase', 'scissors', 'hair drier', 'forklift', 'ladder', 'box', 'fire extinguisher', 'helmet', 'toolbox', 'door', 'window'];
+  const classesCoco = ['fire', 'flame', 'smoke', 'fire extinguisher', 'safety vest', 'safety helmet', 'safety harness', 'body belt', 'head without safety helmet', 'dump truck', 'forklift', 'ladder', 'conveyor belt', 'scissor lift', 'boom lift', 'work platform', 'cellular phone', 'saw', 'knife', 'scissors', 'oven', 'window', 'excavator', 'monitor', 'computer', 'laptop', 'fan', 'stop sign', 'person', 'lithium-ion battery', 'signal light'];
 
   const classesSafety = ['Hardhat', 'Mask', 'NO-Hardhat', 'NO-Mask', 'NO-Safety Vest', 'Person', 'Safety Cone', 'Safety Vest', 'machinery', 'vehicle'];
 
   const cocoTranslation = {
-    'person': { text: "사람 (자세 분석 연동)", color: "#00FF00" }, 'bicycle': { text: "자전거 (충돌 주의)", color: "#ffcc00" },
-    'car': { text: "차량 (교통위험 통제)", color: "#ff3300" }, 'motorcycle': { text: "오토바이 (충돌 위험)", color: "#ff3300" },
-    'airplane': { text: "항공기 (접근 주의)", color: "#ffcc00" }, 'bus': { text: "버스 (사각지대 경고)", color: "#ff3300" },
-    'train': { text: "열차 (선로 접근 차단)", color: "#ff3300" }, 'truck': { text: "중장비/트럭 (협착 치명 위험)", color: "#ff3300" },
-    'boat': { text: "선박 (충돌/추락 주의)", color: "#ffcc00" }, 'traffic light': { text: "신호등 (신호 준수)", color: "#00FF00" },
-    'fire hydrant': { text: "소화전 (구역 점거 차단)", color: "#00FF00" }, 'stop sign': { text: "정지 표지판 (정지 준수)", color: "#ff3300" },
-    'backpack': { text: "방치된 배낭 (장애물 요인)", color: "#00FF00" }, 'umbrella': { text: "우산 (시야 차단 주의)", color: "#00FF00" },
-    'suitcase': { text: "여행가방 (통행 방해)", color: "#00FF00" }, 'bottle': { text: "병 (취급주의)", color: "#00FF00" },
-    'wine glass': { text: "유리잔 (취급주의)", color: "#00FF00" }, 'cup': { text: "컵 (취급주의)", color: "#00FF00" },
-    'fork': { text: "포크 (취급주의)", color: "#00FF00" }, 'knife': { text: "칼 (치명상 가능)", color: "#ff3300" },
-    'chair': { text: "방치된 의자 (전도 위험)", color: "#00FF00" }, 'couch': { text: "소파 (대형 집기 적재)", color: "#00FF00" },
-    'potted plant': { text: "화분 (낙하 위험)", color: "#00FF00" }, 'tv': { text: "TV/모니터 (과열 주의)", color: "#00FF00" },
-    'laptop': { text: "노트북 (전열 화재 관리)", color: "#00FF00" }, 'cell phone': { text: "스마트폰 (보행 주의)", color: "#00FF00" },
-    'microwave': { text: "전자레인지 (고온 화상 위험)", color: "#ff3300" }, 'oven': { text: "오븐 (고온 화재 치명 위험)", color: "#ff3300" },
-    'toaster': { text: "토스터기 (누전 화재 주의)", color: "#ff3300" }, 'vase': { text: "꽃병 (파손 파편 주의)", color: "#ffcc00" },
-    'scissors': { text: "가위 (베임 위험)", color: "#ff3300" }, 'hair drier': { text: "헤어드라이어 (감전 위험)", color: "#ff3300" },
-    'forklift': { text: "🚜 중장비: 지게차 운행 중 (접근 금지!!!)", color: "#ff3300" },
-    'ladder': { text: "🪜 위험요소: 사다리 감지 (추락 주의)", color: "#ffcc00" },
-    'box': { text: "📦 가설물: 적재된 박스 (낙하/통행방해)", color: "#00FF00" },
-    'fire extinguisher': { text: "🧯 안전시설: 소화기 위치 식별됨", color: "#00FF00" },
-    'helmet': { text: "🪖 일반 헬멧/모자 식별", color: "#00FF00" },
-    'toolbox': { text: "🧰 위험기물: 중량 공구함 발견", color: "#00FF00" },
-    'door': { text: "🚪 출입문 포착", color: "#00FF00" },
-    'window': { text: "🪟 창문 포착 (추락 방지선 확인)", color: "#00FF00" }
+    'fire': { text: '화재', color: '#ff3300' },
+    'flame': { text: '불꽃', color: '#ff3300' },
+    'smoke': { text: '연기', color: '#ff3300' },
+    'fire extinguisher': { text: '소화기', color: '#00FF00' },
+    'safety vest': { text: '안전조끼', color: '#00FF00' },
+    'safety helmet': { text: '안전모', color: '#00FF00' },
+    'safety harness': { text: '안전대', color: '#00FF00' },
+    'body belt': { text: '안전대', color: '#00FF00' },
+    'head without safety helmet': { text: '안전모 미착용!!', color: '#ff3300' },
+    'dump truck': { text: '덤프트럭', color: '#ffcc00' },
+    'forklift': { text: '지게차', color: '#ffcc00' },
+    'ladder': { text: '사다리', color: '#ffcc00' },
+    'conveyor belt': { text: '컨베이어', color: '#ffcc00' },
+    'scissor lift': { text: '시저리프트', color: '#ffcc00' },
+    'boom lift': { text: '고소작업대', color: '#ffcc00' },
+    'work platform': { text: '고소작업대', color: '#ffcc00' },
+    'cellular phone': { text: '스마트폰', color: '#ffcc00' },
+    'saw': { text: '톱', color: '#ffcc00' },
+    'knife': { text: '칼', color: '#ffcc00' },
+    'scissors': { text: '가위', color: '#ffcc00' },
+    'oven': { text: '오븐', color: '#ffcc00' },
+    'window': { text: '창문', color: '#ffcc00' },
+    'excavator': { text: '굴삭기', color: '#ffcc00' },
+    'monitor': { text: '모니터', color: '#00FF00' },
+    'computer': { text: '컴퓨터', color: '#00FF00' },
+    'laptop': { text: '노트북', color: '#00FF00' },
+    'fan': { text: '선풍기', color: '#00FF00' },
+    'stop sign': { text: '정지표지', color: '#ff3300' },
+    'person': { text: '사람', color: '#ff3300' },
+    'lithium-ion battery': { text: '리튬이온배터리', color: '#ff3300' },
+    'signal light': { text: '신호등', color: '#ff3300' },
   };
+
 
   function throttleLog(key, message, color) {
     const now = Date.now();
@@ -202,7 +210,7 @@
     document.getElementById(`mode-${mode}`).classList.add('active');
     await loadSelectedBrain(mode);
     currentBrain = mode;
-    let modeKor = mode === 'coco' ? '일상생활 모드' : mode === 'safety' ? '건설현장 모드' : '화재감시 모드';
+    let modeKor = mode === 'coco' ? '맞춤형 모드' : mode === 'safety' ? '건설현장 모드' : '화재감시 모드';
     throttleLog("system_switch", `🔄 분석 모드가 [${modeKor}]로 변경되었습니다.`, "#ffcc00");
     isChanging = false;
   }
