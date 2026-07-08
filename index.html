@@ -129,11 +129,58 @@
   let isProcessing = false; 
   let localStream = null;
   let animationFrameId = null;
-
   const lastLogTimes = {};
 
   const classesCoco = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'];
   const classesSafety = ['Hardhat', 'Mask', 'NO-Hardhat', 'NO-Mask', 'NO-Safety Vest', 'Person', 'Safety Cone', 'Safety Vest', 'machinery', 'vehicle'];
+
+  // 🌟 [다이어트 핵심] 숨김 항목은 아예 제거하고, 전달해주신 한글 문구 및 Hex 색상 코드를 1:1 완벽 동기화 매핑
+  const cocoTranslation = {
+    'person': { text: "사람 (자세 분석 연동)", color: "#00FF00" },
+    'bicycle': { text: "자전거 (충돌 주의)", color: "#ffcc00" },
+    'car': { text: "차량 (교통위험 통제)", color: "#ff3300" },
+    'motorcycle': { text: "오토바이 (충돌 위험)", color: "#ff3300" },
+    'airplane': { text: "항공기 (접근 주의)", color: "#ffcc00" },
+    'bus': { text: "버스 (사각지대 경고)", color: "#ff3300" },
+    'train': { text: "열차 (선로 접근 차단)", color: "#ff3300" },
+    'truck': { text: "중장비/트럭 (협착 치명 위험)", color: "#ff3300" },
+    'boat': { text: "선박 (충돌/추락 주의)", color: "#ffcc00" },
+    'traffic light': { text: "신호등 (신호 준수)", color: "#00FF00" },
+    'fire hydrant': { text: "소화전 (구역 점거 차단)", color: "#00FF00" },
+    'stop sign': { text: "정지 표지판 (정지 준수)", color: "#ff3300" },
+    'elephant': { text: "곰 (피신 요망)", color: "#ffcc00" },
+    'bear': { text: "곰 (피신 요망)", color: "#ffcc00" },
+    'backpack': { text: "방치된 배낭 (장애물 요인)", color: "#00FF00" },
+    'umbrella': { text: "우산 (시야 차단 주의)", color: "#00FF00" },
+    'suitcase': { text: "여행가방 (통행 방해)", color: "#00FF00" },
+    'frisbee': { text: "미분류 요인 (frisbee)", color: "#ffcc00" },
+    'skis': { text: "미분류 요인 (skis)", color: "#ffcc00" },
+    'snowboard': { text: "미분류 요인 (snowboard)", color: "#ffcc00" },
+    'sports ball': { text: "미분류 요인 (sports ball)", color: "#ffcc00" },
+    'kite': { text: "미분류 요인 (kite)", color: "#ffcc00" },
+    'baseball bat': { text: "미분류 요인 (baseball bat)", color: "#ffcc00" },
+    'baseball glove': { text: "미분류 요인 (baseball glove)", color: "#ffcc00" },
+    'skateboard': { text: "미분류 요인 (skateboard)", color: "#ffcc00" },
+    'surfboard': { text: "미분류 요인 (surfboard)", color: "#ffcc00" },
+    'tennis racket': { text: "미분류 요인 (tennis racket)", color: "#ffcc00" },
+    'bottle': { text: "병 (취급주의)", color: "#00FF00" },
+    'wine glass': { text: "유리잔 (취급주의)", color: "#00FF00" },
+    'cup': { text: "컵 (취급주의)", color: "#00FF00" },
+    'fork': { text: "포크 (취급주의)", color: "#00FF00" },
+    'knife': { text: "칼 (치명상 가능)", color: "#ff3300" },
+    'chair': { text: "방치된 의자 (전도 위험)", color: "#00FF00" },
+    'couch': { text: "소파 (대형 집기 적재)", color: "#00FF00" },
+    'potted plant': { text: "화분 (낙하 위험)", color: "#00FF00" },
+    'tv': { text: "TV/모니터 (과열 주의)", color: "#00FF00" },
+    'laptop': { text: "노트북 (전열 화재 관리)", color: "#00FF00" },
+    'cell phone': { text: "스마트폰 (보행 주의)", color: "#00FF00" },
+    'microwave': { text: "전자레인지 (고온 화상 위험)", color: "#ff3300" },
+    'oven': { text: "오븐 (고온 화재 치명 위험)", color: "#ff3300" },
+    'toaster': { text: "토스터기 (누전 화재 주의)", color: "#ff3300" },
+    'vase': { text: "꽃병 (파손 파편 주의)", color: "#ffcc00" },
+    'scissors': { text: "가위 (베임 위험)", color: "#ff3300" },
+    'hair drier': { text: "헤어드라이어 (감전 위험)", color: "#ff3300" }
+  };
 
   function throttleLog(key, message, color) {
     const now = Date.now();
@@ -146,7 +193,6 @@
       logItem.style.color = color;
       logItem.style.borderLeftColor = color;
       logItem.innerHTML = `<span style="color: #777; margin-right: 5px;">[${timeStr}]</span>${message}`;
-      
       logContainer.insertBefore(logItem, logContainer.firstChild);
       if (logContainer.children.length > 35) logContainer.removeChild(logContainer.lastChild);
     }
@@ -155,7 +201,6 @@
   async function loadSelectedBrain(mode) {
     loadingText.style.display = 'block';
     loadingText.innerText = "YOLO 고정밀 ONNX 안전 모델 로딩 중...";
-
     try {
       if (mode === 'coco') {
         if (!sessionCoco) {
@@ -170,14 +215,13 @@
           try {
             sessionFire = await ort.InferenceSession.create('./yolov8n_fire.onnx', { executionProviders: ['webgl', 'wasm'] });
           } catch (e) {
-            console.log("화재 모델 WebGL 가속 실패, WASM 연산으로 전환 우회합니다.");
             sessionFire = await ort.InferenceSession.create('./yolov8n_fire.onnx', { executionProviders: ['wasm'] });
           }
         }
       }
     } catch (e) {
       console.error(e);
-      alert(`⚠️ [모델 로드 실패]\n'yolov8n_${mode}.onnx' 파일을 읽을 수 없습니다. 파일 확장자명 및 깃허브 업로드 상태를 점검해 주세요.`);
+      alert(`⚠️ [모델 로드 실패]\n'yolov8n_${mode}.onnx' 파일의 파일명과 깃허브 업로드 상태를 점검해 주세요.`);
       goToWelcomeScreen();
       loadingText.style.display = 'none';
       return;
@@ -189,15 +233,12 @@
     if (currentBrain === mode || isChanging) return;
     isChanging = true;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
     document.getElementById('mode-coco').classList.remove('active');
     document.getElementById('mode-safety').classList.remove('active');
     document.getElementById('mode-fire').classList.remove('active');
     document.getElementById(`mode-${mode}`).classList.add('active');
-    
     await loadSelectedBrain(mode);
     currentBrain = mode;
-    
     let modeKor = mode === 'coco' ? '일상생활 모드' : mode === 'safety' ? '건설현장 모드' : '화재감시 모드';
     throttleLog("system_switch", `🔄 분석 모드가 [${modeKor}]로 변경되었습니다.`, "#ffcc00");
     isChanging = false;
@@ -214,21 +255,14 @@
     logContainer.innerHTML = "";
     isProcessing = false;
     window.scrollTo(0, 0);
-    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-        audio: false
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
       localStream = stream;
       video.srcObject = stream;
-      
       video.onloadedmetadata = async () => {
         video.width = video.videoWidth;
         video.height = video.videoHeight;
-        
         await loadSelectedBrain(currentBrain);
-        
         loadingText.innerText = "YOLOv8 고속 추적 엔진 가동됨";
         setTimeout(() => { loadingText.style.display = 'none'; }, 2000);
         window.addEventListener('resize', resizeCanvas);
@@ -243,113 +277,65 @@
 
   function resizeCanvas() {
     const rect = video.getBoundingClientRect();
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
-    canvas.style.top = video.offsetTop + 'px';
-    canvas.style.left = video.offsetLeft + 'px';
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.style.width = rect.width + 'px'; canvas.style.height = rect.height + 'px';
+    canvas.style.top = video.offsetTop + 'px'; canvas.style.left = video.offsetLeft + 'px';
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   }
 
   async function detectFrame() {
-    if (isProcessing || isChanging) {
-      animationFrameId = requestAnimationFrame(detectFrame);
-      return;
-    }
-
-    let activeSession = sessionCoco;
-    let activeClasses = classesCoco;
-    
-    if (currentBrain === 'safety') {
-      activeSession = sessionSafety;
-      activeClasses = classesSafety;
-    } else if (currentBrain === 'fire') {
-      activeSession = sessionFire;
-    }
+    if (isProcessing || isChanging) { animationFrameId = requestAnimationFrame(detectFrame); return; }
+    let activeSession = sessionCoco; let activeClasses = classesCoco;
+    if (currentBrain === 'safety') { activeSession = sessionSafety; activeClasses = classesSafety; }
+    else if (currentBrain === 'fire') { activeSession = sessionFire; }
 
     if (activeSession && video.readyState === video.HAVE_ENOUGH_DATA) {
-      isProcessing = true; 
-
+      isProcessing = true;
       const [onnxData, w_width, h_height] = tf.tidy(() => {
         const img = tf.browser.fromPixels(video).resizeNearestNeighbor([640, 640]).toFloat().div(tf.scalar(255.0));
         return [img.transpose([2, 0, 1]).dataSync(), video.videoWidth, video.videoHeight];
       });
-
       const inputTensor = new ort.Tensor('float32', onnxData, [1, 3, 640, 640]);
-      
       try {
         const outputMap = await activeSession.run({ [activeSession.inputNames[0]]: inputTensor });
         const outputTensor = outputMap[activeSession.outputNames[0]];
-
-        const dims = outputTensor.dims; 
-        const outChannels = dims[1]; 
-        const outAnchors = dims[2]; 
+        const dims = outputTensor.dims; const outChannels = dims[1]; const outAnchors = dims[2];
 
         tf.tidy(() => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-
           const result = tf.tensor(outputTensor.data, [1, outChannels, outAnchors]);
-          const resTransposed = result.transpose([0, 2, 1]); 
-
+          const resTransposed = result.transpose([0, 2, 1]);
           const rawBoxes = tf.slice(resTransposed, [0, 0, 0], [-1, -1, 4]).squeeze();
           const scores = tf.slice(resTransposed, [0, 0, 4], [-1, -1, -1]);
-          
-          const maxScores = scores.max(2).squeeze();
-          const classes = scores.argMax(2).squeeze();
+          const maxScores = scores.max(2).squeeze(); const classes = scores.argMax(2).squeeze();
 
-          const cx = tf.slice(rawBoxes, [0, 0], [-1, 1]);
-          const cy = tf.slice(rawBoxes, [0, 1], [-1, 1]);
-          
-          const w = tf.abs(tf.slice(rawBoxes, [0, 2], [-1, 1]));
-          const h = tf.abs(tf.slice(rawBoxes, [0, 3], [-1, 1]));
-
-          const xmin = cx.sub(w.div(2));
-          const ymin = cy.sub(h.div(2));
-          const xmax = cx.add(w.div(2));
-          const ymax = cy.add(h.div(2));
-
+          const cx = tf.slice(rawBoxes, [0, 0], [-1, 1]); const cy = tf.slice(rawBoxes, [0, 1], [-1, 1]);
+          const w = tf.abs(tf.slice(rawBoxes, [0, 2], [-1, 1])); const h = tf.abs(tf.slice(rawBoxes, [0, 3], [-1, 1]));
+          const xmin = cx.sub(w.div(2)); const ymin = cy.sub(h.div(2)); const xmax = cx.add(w.div(2)); const ymax = cy.add(h.div(2));
           const nmsBoxes = tf.concat([ymin, xmin, ymax, xmax], 1);
 
           let scoreLimit = (currentBrain === 'fire') ? 0.25 : 0.45;
           const nmsIndices = tf.image.nonMaxSuppression(nmsBoxes, maxScores, 10, 0.45, scoreLimit).arraySync();
-
-          const boxesArray = rawBoxes.arraySync();
-          const classesArray = classes.arraySync();
-          const scoresArray = maxScores.arraySync();
+          const boxesArray = rawBoxes.arraySync(); const classesArray = classes.arraySync(); const scoresArray = maxScores.arraySync();
 
           nmsIndices.forEach(idx => {
-            const box = boxesArray[idx];
-            const classIdx = classesArray[idx];
-            const score = Math.round(scoresArray[idx] * 100);
-
-            const box_w = Math.abs(box[2]);
-            const box_h = Math.abs(box[3]);
-
-            const x = (box[0] - box_w/2) * (canvas.width / 640);
-            const y = (box[1] - box_h/2) * (canvas.height / 640);
-            const w_box = box_w * (canvas.width / 640);
-            const h_box = box_h * (canvas.height / 640);
+            const box = boxesArray[idx]; const classIdx = classesArray[idx]; const score = Math.round(scoresArray[idx] * 100);
+            const box_w = Math.abs(box[2]); const box_h = Math.abs(box[3]);
+            const x = (box[0] - box_w/2) * (canvas.width / 640); const y = (box[1] - box_h/2) * (canvas.height / 640);
+            const w_box = box_w * (canvas.width / 640); const h_box = box_h * (canvas.height / 640);
 
             let displayLabel = ""; let boxColor = "#ffcc00";
 
             if (currentBrain === 'coco') {
               const label = activeClasses[classIdx];
-              const cocoTranslation = {
-                'person': { text: "작업자 감지", color: "#00FF00" }, 'bicycle': { text: "자전거 감지 (충돌 주의)", color: "#ffcc00" },
-                'car': { text: "차량 감지 (교통위험 통제)", color: "#ff3300" }, 'motorcycle': { text: "오토바이 감지 (충돌 위험)", color: "#ff3300" },
-                'bus': { text: "버스 감지 (사각지대 경고)", color: "#ff3300" }, 'train': { text: "열차 감지 (선로 접근 차단)", color: "#ff3300" },
-                'truck': { text: "중장비/트럭 (협착 치명 위험)", color: "#ff3300" }, 'stop sign': { text: "정지 표지판 (정지 준수)", color: "#ff3300" },
-                'knife': { text: "칼 포착 (날카로운 도구 위험)", color: "#ff3300" }, 'scissors': { text: "가위 포착 (베임 사고 주의)", color: "#ff3300" },
-                'cell phone': { text: "스마트폰 사용 중 (보행 위험)", color: "#00FF00" }, 'backpack': { text: "방치된 배낭 (장애물 요인)", color: "#00FF00" },
-                'umbrella': { text: "우산 (시야 차단 주의)", color: "#00FF00" }, 'bottle': { text: "병 발견 (투기/미끄러짐 위험)", color: "#00FF00" },
-                'chair': { text: "방치된 의자 (전도 위험 요인)", color: "#00FF00" }, 'laptop': { text: "노트북 (전열 화재 관리)", color: "#00FF00" },
-                'apple': { text: "숨김" }, 'sandwich': { text: "숨김" },
-                'parking meter':'숨김','bench':'숨김','bird':'숨김','cat':'숨김','dog':'숨김','horse':'숨김','sheep':'숨김','cow':'숨김','zebra':'숨김','giraffe':'숨김','handbag':'숨김','tie':'숨김','spoon':'숨김','bowl':'숨김','banana':'숨김','orange':'숨김','broccoli':'숨김','carrot':'숨김','hot dog':'숨김','pizza':'숨김','donut':'숨김','cake':'숨김','bed':'숨김','dining table':'숨김','toilet':'숨김','mouse':'숨김','remote':'숨김','keyboard':'숨김','sink':'숨김','refrigerator':'숨김','book':'숨김','clock':'숨김','teddy bear':'숨김','toothbrush':'숨김','airplane':'지정','boat':'지정','traffic light':'지정','fire hydrant':'지정','suitcase':'지정','wine glass':'지정','cup':'지정','fork':'지정','couch':'지정','potted plant':'지정','tv':'지정','microwave':'지정','oven':'지정','toaster':'지정','vase':'지정','hair drier':'지정'
-              };
               const matched = cocoTranslation[label];
-              if (!matched || matched === "숨김" || matched.text === "숨김" || matched === "지정") return;
+              
+              // 🌟 [다이어트 선로 가동] 사물 명단 사전에 아예 등록되지 않은 숨김 대상은 연산 및 드로잉을 원천 스킵!
+              if (!matched) return;
+              
               displayLabel = matched.text; boxColor = matched.color;
-              if (boxColor === "#ff3300") throttleLog(label, `⚠️ 위험 요소 포착: [${displayLabel}]`, "#ff3300");
+              if (boxColor === "#ff3300") {
+                throttleLog(label, `⚠️ 위험 요소 포착: [${displayLabel}]`, "#ff3300");
+              }
             } 
             else if (currentBrain === 'safety') {
               const label = activeClasses[classIdx];
@@ -364,17 +350,10 @@
               else if (label === 'machinery') { displayLabel = "⚙️ 건설기계/장비 작동중"; boxColor = "#ffcc00"; throttleLog("machine", "⚙️ 장비알림: 중장비 및 가설 설비 작동 구역 접근 주의", "#ffcc00"); }
               else if (label === 'vehicle') { displayLabel = "⚠️ 위험: 차량 접근중"; boxColor = "#ff3300"; throttleLog("vehicle", "⚠️ 교통안전: 작업 구역 내 이동형 차량/덤프 트랙킹 확인", "#ff3300"); }
             }
-            // 🌟 [초경량 나노 규격 동기화 완료]: 0번 연기(Smoke), 1번 불꽃(Fire) 표준 정렬 인덱스 완전 변환 매핑
             else if (currentBrain === 'fire') {
-              if (classIdx === 1) {
-                displayLabel = "🔥 대형위험: 화재 발생!!"; boxColor = "#ff3300";
-                throttleLog("fire_alert", "🚨🚨 [긴급 화재재난] 구역 내 불꽃 및 발화 요인 감지! 즉시 대피 유도", "#ff3300");
-              } else if (classIdx === 0) {
-                displayLabel = "💨 경고: 연기 포착!!"; boxColor = "#ffcc00";
-                throttleLog("smoke_alert", "⚠️ [발화 전조현황] 구역 내 미세 연기 및 연소 가스 트랙킹 발생", "#ffcc00");
-              }
+              if (classIdx === 1) { displayLabel = "🔥 대형위험: 화재 발생!!"; boxColor = "#ff3300"; throttleLog("fire_alert", "🚨🚨 [긴급 화재재난] 구역 내 불꽃 및 발화 요인 감지! 즉시 대피 유도", "#ff3300"); }
+              else if (classIdx === 0) { displayLabel = "💨 경고: 연기 포착!!"; boxColor = "#ffcc00"; throttleLog("smoke_alert", "⚠️ [발화 전조현황] 구역 내 미세 연기 및 연소 가스 트랙킹 발생", "#ffcc00"); }
             }
-
             ctx.globalAlpha = 0.5; ctx.strokeStyle = boxColor; ctx.lineWidth = 3; ctx.strokeRect(x, y, w_box, h_box);
             ctx.fillStyle = boxColor; ctx.font = "bold 15px Arial";
             const textStr = `${displayLabel} [${score}%]`; const textWidth = ctx.measureText(textStr).width;
@@ -382,11 +361,7 @@
             ctx.globalAlpha = 1.0; ctx.fillStyle = "#000000"; ctx.fillText(textStr, x + 5, y - 7);
           });
         });
-      } catch (err) {
-        console.error("AI 추적 연산 에러 무시:", err);
-      } finally {
-        isProcessing = false; 
-      }
+      } catch (err) { console.error("AI 추적 연산 에러 무시:", err); } finally { isProcessing = false; }
     }
     animationFrameId = requestAnimationFrame(detectFrame);
   }
@@ -394,23 +369,12 @@
   function stopApp() {
     if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
     if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
-    video.srcObject = null;
-    window.removeEventListener('resize', resizeCanvas);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    appScreen.style.display = 'none';
-    loadingText.style.display = 'none';
-    isProcessing = false;
-    window.scrollTo(0, 0); 
-    
-    mainIcon.innerText = "✅";
-    welcomeTitle.innerText = "CCTV 안전 종료됨";
+    video.srcObject = null; window.removeEventListener('resize', resizeCanvas); ctx.clearRect(0, 0, canvas.width, canvas.height);
+    appScreen.style.display = 'none'; loadingText.style.display = 'none'; isProcessing = false; window.scrollTo(0, 0); 
+    mainIcon.innerText = "✅"; welcomeTitle.innerText = "CCTV 안전 종료됨";
     welcomeDesc.innerHTML = "사용 중이던 카메라 및 그래픽 하드웨어(WebGL) 리소스를 안전하게 반환하였습니다. (스마트폰 발열 및 배터리 누수 완전 차단)";
-    actionButton.innerText = "다시 시작하기";
-    
-    welcomeScreen.style.display = 'flex'; 
+    actionButton.innerText = "다시 시작하기"; welcomeScreen.style.display = 'flex'; 
   }
-
   function goToWelcomeScreen() { appScreen.style.display = 'none'; welcomeScreen.style.display = 'flex'; }
 </script>
 </body>
