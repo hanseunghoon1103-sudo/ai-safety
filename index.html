@@ -300,7 +300,6 @@
           const cx = tf.slice(rawBoxes, [0, 0], [-1, 1]);
           const cy = tf.slice(rawBoxes, [0, 1], [-1, 1]);
           
-          // 🌟 [겹침 대폭수정]: AI 모델이 화면 가장자리에서 뱉는 마이너스(음수) 크기값을 절대값(tf.abs)으로 감싸 수학 오류 원천 차단!
           const w = tf.abs(tf.slice(rawBoxes, [0, 2], [-1, 1]));
           const h = tf.abs(tf.slice(rawBoxes, [0, 3], [-1, 1]));
 
@@ -312,7 +311,6 @@
           const nmsBoxes = tf.concat([ymin, xmin, ymax, xmax], 1);
 
           let scoreLimit = (currentBrain === 'fire') ? 0.25 : 0.45;
-          // IoU 임계치를 0.45로 조정하여 완벽 압축supression 가동
           const nmsIndices = tf.image.nonMaxSuppression(nmsBoxes, maxScores, 10, 0.45, scoreLimit).arraySync();
 
           const boxesArray = rawBoxes.arraySync();
@@ -324,7 +322,6 @@
             const classIdx = classesArray[idx];
             const score = Math.round(scoresArray[idx] * 100);
 
-            // 드로잉 수치도 절대값 안전 보장 처리 적용
             const box_w = Math.abs(box[2]);
             const box_h = Math.abs(box[3]);
 
@@ -337,7 +334,6 @@
 
             if (currentBrain === 'coco') {
               const label = activeClasses[classIdx];
-              // 🌟 [시작 버튼 먹통 해결]: 이전 코드의 'apple':'sandwich':'숨김' 쉼표 기호 결손 완벽 교정 완료!
               const cocoTranslation = {
                 'person': { text: "작업자 감지", color: "#00FF00" }, 'bicycle': { text: "자전거 감지 (충돌 주의)", color: "#ffcc00" },
                 'car': { text: "차량 감지 (교통위험 통제)", color: "#ff3300" }, 'motorcycle': { text: "오토바이 감지 (충돌 위험)", color: "#ff3300" },
@@ -368,11 +364,12 @@
               else if (label === 'machinery') { displayLabel = "⚙️ 건설기계/장비 작동중"; boxColor = "#ffcc00"; throttleLog("machine", "⚙️ 장비알림: 중장비 및 가설 설비 작동 구역 접근 주의", "#ffcc00"); }
               else if (label === 'vehicle') { displayLabel = "⚠️ 위험: 차량 접근중"; boxColor = "#ff3300"; throttleLog("vehicle", "⚠️ 교통안전: 작업 구역 내 이동형 차량/덤프 트랙킹 확인", "#ff3300"); }
             }
+            // 🌟 [초경량 나노 규격 동기화 완료]: 0번 연기(Smoke), 1번 불꽃(Fire) 표준 정렬 인덱스 완전 변환 매핑
             else if (currentBrain === 'fire') {
-              if (classIdx === 0) {
+              if (classIdx === 1) {
                 displayLabel = "🔥 대형위험: 화재 발생!!"; boxColor = "#ff3300";
                 throttleLog("fire_alert", "🚨🚨 [긴급 화재재난] 구역 내 불꽃 및 발화 요인 감지! 즉시 대피 유도", "#ff3300");
-              } else {
+              } else if (classIdx === 0) {
                 displayLabel = "💨 경고: 연기 포착!!"; boxColor = "#ffcc00";
                 throttleLog("smoke_alert", "⚠️ [발화 전조현황] 구역 내 미세 연기 및 연소 가스 트랙킹 발생", "#ffcc00");
               }
